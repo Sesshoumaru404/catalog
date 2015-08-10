@@ -6,7 +6,7 @@
       <div class="col-sm-12 main">
         <div class="jumbotron">
             <h2>New Item</h2>
-            <form action="#" method = "post">
+            <form action="#" method="post" enctype=multipart/form-data>
       				<div class="form-group">
       					<label for="name">Name:</label>
       					<input type ="text" class="form-control" name="name" value="">
@@ -15,14 +15,14 @@
                 <label for="name">Price:</label>
       					<input type ="text" class="form-control" name="price" value="">
                 <label for="name">Category:</label>
-                <select class="form-control" name="cat_id">
+                <select class="form-control" name="category_id">
                   {% for x in categories %}
                       <option value ="{{x.id}}" >{{x.name.title()}}</option>
                   {% endfor %}
                 </select>
                 <div class="form-group">
                   <label for="exampleInputFile">File input</label>
-                  <input type="file" id="exampleInputFile">
+                  <input type="file" id="exampleInputFile" name="image">
                   <!-- <p class="help-block">Example block-level help text here.</p> -->
                 </div>
       					<div class="padding-bottom"></div>

@@ -1,6 +1,6 @@
 import os
 import sys
-from sqlalchemy import Column, ForeignKey, Integer, String, DateTime, func
+from sqlalchemy import Column, ForeignKey, Integer, String, DateTime, func, BLOB
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship
 from sqlalchemy import create_engine
@@ -28,6 +28,7 @@ class Item(Base):
     name = Column(String(50), nullable=False)
     price = Column(String(8))
     description = Column(String(300), nullable=False)
+    image = Column(String())
     category_id = Column(Integer, ForeignKey('category.id'))
     category = relationship(Category)
 

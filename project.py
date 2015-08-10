@@ -1,10 +1,16 @@
 from flask import Flask, render_template, request, redirect,jsonify, url_for, flash
+from werkzeug import secure_filename
 from sqlalchemy import create_engine, asc, text
 from sqlalchemy.orm import sessionmaker
 from catalog import Category, Base, Item
 from sqlalchemy.sql import func
+import os
+
+UPLOAD_FOLDER = 'images'
+ALLOWED_EXTENSIONS = set(['txt', 'pdf', 'png', 'jpg', 'jpeg', 'gif'])
 
 app = Flask(__name__)
+app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 
 #Connect to Database and create database session
 engine = create_engine('sqlite:///categoryproject.db')
@@ -22,7 +28,7 @@ def showCatalog():
     catalogCounts = session.query(Category.id, Category.name, subq.c.item_count).\
         outerjoin(subq, Category.id == subq.c.category_id).order_by(Category.name.asc())
     tencat = session.query(Item.id, Item.name, Item.price, Category.name.label('cat_name')).\
-        outerjoin(Category, Category.id == Item.category_id)
+        outerjoin(Category, Category.id == Item.category_id).order_by(Item.create_At.desc())
     tenLastest = session.query(Item).order_by(Item.create_At.desc())
     # Pagination(tenLastest,)
     print tencat
@@ -99,12 +105,21 @@ def deleteItem(category_name, item_id):
 def createItem():
     categories =  session.query(Category).all()
     if request.method == 'POST':
+        print request.files
+        image = request.files['image']
         newItem = Item(name=request.form['name'],
                        description=request.form['description'],
                        price=request.form['price'],
-                       category_id=request.form['cat_id'])
+                       category_id=request.form['category_id'])
+        if image and allowed_file(image.filename):
+            filename = secure_filename(image.filename)
+            imagepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+            image.save(imagepath)
+            newItem.image=imagepath
+        print request.form['image']
+        print newItem.image
         session.add(newItem)
-        session.commit()
+        # session.commit()
         flash('Item Successfully created')
         return redirect(url_for('showCatalog'))
     return render_template('new.html', categories = categories)
@@ -120,10 +135,12 @@ def checkCategory(category):
     q = session.query(Category).filter(Category.name == category).count()
     return q > 0
 
-
+def allowed_file(filename):
+    return '.' in filename and \
+           filename.rsplit('.', 1)[1] in ALLOWED_EXTENSIONS
 
 
 if __name__ == '__main__':
     app.secret_key = "Paul"
     app.debug = True
-    app.run(host='0.0.0.0', port=8000)
+    app.run(host='0.0.0.0', port=5000)
