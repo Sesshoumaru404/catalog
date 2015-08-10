@@ -20,7 +20,7 @@ def showCatalog():
     subq = session.query(Item.category_id, func.count('*').label('item_count')).\
         group_by(Item.category_id).subquery()
     catalogCounts = session.query(Category.id, Category.name, subq.c.item_count).\
-        outerjoin(subq, Category.id == subq.c.category_id)
+        outerjoin(subq, Category.id == subq.c.category_id).order_by(Category.name.asc())
     tencat = session.query(Item.id, Item.name, Item.price, Category.name.label('cat_name')).\
         outerjoin(Category, Category.id == Item.category_id)
     tenLastest = session.query(Item).order_by(Item.create_At.desc())
@@ -75,7 +75,7 @@ def categoryItems(category_name):
                              label('item_count')).\
                              group_by(Item.category_id).subquery()
         catalogCounts = session.query(Category.id, Category.name, subq.c.item_count).\
-            outerjoin(subq, Category.id == subq.c.category_id)
+            outerjoin(subq, Category.id == subq.c.category_id).order_by(Category.name.asc())
         categoryItems = session.query(Item.id, Item.name, Item.price, Category.name.label('cat_name')).\
             outerjoin(Category, Category.id == Item.category_id).filter(Category.name == category_name)
         tenLastest = session.query(Item).order_by(Item.create_At.desc())
@@ -133,4 +133,4 @@ def checkCategory(category):
 if __name__ == '__main__':
     app.secret_key = "Paul"
     app.debug = True
-    app.run(host='0.0.0.0', port=5000)
+    app.run(host='0.0.0.0', port=8000)

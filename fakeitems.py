@@ -1,3 +1,4 @@
+import random
 from sqlalchemy import create_engine
 from sqlalchemy_utils import database_exists, drop_database, create_database
 from sqlalchemy.orm import sessionmaker
@@ -25,60 +26,21 @@ DBSession = sessionmaker(bind=engine)
 # session.rollback()
 session = DBSession()
 
-# Soccer Category
-category1 = Category(name="soccer")
-session.add(category1)
-session.commit()
+sports = {"soccer", "basketball", "tennis", "polo", "track",
+        "swimming", "racing", "football", "baseball", "golf", "skydiving",
+        "games", "chess"}
 
-item1 = Item(name="blue Ball", description="Soccer ball with blue color",
-                 price="$7.50", category=category1)
-
-session.add(item1)
-session.commit()
-
-item2 = Item(name="red Ball", description="Soccer ball with red color",
-                 price="$7.50", category=category1)
-
-session.add(item2)
-session.commit()
-
-item3 = Item(name="Orange Ball", description="Soccer ball with orange color",
-                 price="$7.50", category=category1)
-session.add(item3)
-session.commit()
-
-# Basketball Category
-category2 = Category(name="basketball")
-session.add(category2)
-session.commit()
-
-item4 = Item(name="Blue Ball", description="Basketball with blue color",
-                 price="$7.50", category=category2)
-
-session.add(item4)
-session.commit()
-
-item5 = Item(name="Red Ball", description="Basketball with red color",
-                 price="$7.50", category=category2)
-
-session.add(item5)
-session.commit()
-
-item6 = Item(name="Orange Ball", description="Basketball with orange color",
-                 price="$7.50", category=category2)
-session.add(item6)
-session.commit()
-
-item7 = Item(name="Purple Ball", description="Basketball with purple color",
-                 price="$7.50", category=category2)
-session.add(item7)
-session.commit()
-
-item8 = Item(name="Street Ball", description="Basketball with grey color",
-                 price="$7.50", category=category2)
-session.add(item7)
-session.commit()
-
-
+for sport in sports:
+    category = Category(name=sport)
+    session.add(category)
+    session.commit()
+    for i in range(random.randint(1,20)) :
+        name = sport + ' item ' + str(i+1)
+        item = Item(name=name,
+                    description="Lorem ipsum dolor sit amet, consectetur adipiscing elit. Morbi cursus luctus dapibus. Aenean ut quam eu sapien malesuada porta ut non quam. Etiam cursus maximus eros eu pharetra. Fusce finibus turpis ipsum, quis vehicula libero molestie sed. Aenean cursus viverra nulla, vel venenatis dui vulputate in. Morbi et aliquet erat. Duis eget lacus quis lorem iaculis ornare ut quis dui. Vivamus euismod, sapien nec varius sodales, justo lacus mattis erat, non pellentesque arcu nulla ut neque. Aenean sagittis consectetur sem eu tristique. Donec consectetur turpis tincidunt risus euismod tincidunt. Sed lacus turpis, iaculis nec nulla eget, varius pretium magna. Aliquam vitae magna vitae elit eleifend suscipit eget eu arcu. Nunc dolor ex, bibendum id purus quis, tempus bibendum augue. Praesent consequat sapien risus, quis fermentum velit tincidunt imperdiet. Cras lacinia tempus libero, sed mollis ante tincidunt non.",
+                    price="$7.50",
+                    category=category)
+        session.add(item)
+        session.commit()
 
 print "added menu items!"
