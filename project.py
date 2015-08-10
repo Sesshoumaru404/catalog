@@ -44,16 +44,9 @@ def editItem(category_name, item_id):
     if checkCategory(category_name):
         editedItem = session.query(Item).filter_by(id=item_id).one()
         if request.method == 'POST':
-            for x in request.form:
-                print editedItem
-            if request.form['name']:
-                editedItem.name = request.form['name']
-            if request.form['description']:
-                editedItem.description = request.form['description']
-            if request.form['price']:
-                editedItem.price = request.form['price']
-            if request.form['category_id']:
-                editedItem.category_id = request.form['category_id']
+            for attr in request.form:
+                if request.form[attr]:
+                    setattr(editedItem, attr, request.form[attr])
             session.add(editedItem)
             session.commit()
             flash('Item Successfully Edited')
