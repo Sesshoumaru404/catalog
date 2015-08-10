@@ -1,0 +1,16 @@
+.sidebar{
+  margin-top: 50px;
+  display:block;
+  .count{
+	   text-decoration-color: red;
+  }
+}
+
+.main{
+  margin-top: 40px;
+}
+
+.flash{
+  margin-top: 60px;
+  margin-bottom: 0px;
+}

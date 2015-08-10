@@ -1,0 +1,24 @@
+{% extends "main.html" %}
+
+{% block content %}
+  <div class="container">
+    <div class="row">
+      <div class="col-sm-12 main">
+        <div class="jumbotron">
+            <h2>Delete Item</h2>
+            <p>
+              Are you sure you want to delete {{item.name.title()}}?
+            </p>
+            <form action="#" method = 'post'>
+              <a class="btn btn-primary"
+                href="{{url_for('showItem', category_name = item.cat_name, item_id= item.id) }}"
+                role="button">
+                <span class="glyphicon glyphicon-arrow-left"></span> Go Back</a>
+            	<button type="submit" class="btn btn-danger delete" id="submit" type="submit">
+            	<span class="glyphicon glyphicon-trash" aria-hidden="true"></span> Delete</button>
+            </form>
+        </div> <!-- /jumbotron -->
+      </div> <!-- /main -->
+    </div> <!-- /row -->
+  </div> <!-- /container -->
+{% endblock %}
