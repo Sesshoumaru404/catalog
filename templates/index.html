@@ -41,7 +41,7 @@
                 {% for x in lastest %}
                   <tr class='clickable-row' data-href='{{url_for('showItem', category_name = x.cat_name, item_id= x.id) }}'>
                     <td>{{x.id}}</td>
-                    <td>{{x.name.title()}}</td>
+                    <td>{{x.name.title()}} {% if x.image %}  <span class="badge"><span class="glyphicon glyphicon-picture"></span></span> {% endif %}</td>
                     <td>{{x.cat_name.title()}}</td>
                     <td>{{x.price}}</td>
                   </tr>

@@ -10,6 +10,7 @@
               Are you sure you want to delete {{item.name.title()}}?
             </p>
             <form action="#" method = 'post'>
+              <input name=_csrf_token type=hidden value="{{ csrf_token () }}">
               <a class="btn btn-primary"
                 href="{{url_for('showItem', category_name = item.cat_name, item_id= item.id) }}"
                 role="button">

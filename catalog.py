@@ -1,5 +1,3 @@
-import os
-import sys
 from sqlalchemy import Column, ForeignKey, Integer, String, DateTime, func, BLOB
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship
@@ -18,13 +16,20 @@ class Category(Base):
     def itemsInCategory():
         return
 
+    @property
+    def json(self):
+        """Return object data in easily serializeable format"""
+        return {
+            'name': self.name,
+            'id': self.id,
+        }
 
 class Item(Base):
     __tablename__ = 'item'
 
     id = Column(Integer, primary_key=True)
     create_At = Column(DateTime, default=func.now())
-    edited_At = Column(DateTime, onupdate=func.now())
+    edited_At = Column(DateTime, default=func.now(), onupdate=func.now())
     name = Column(String(50), nullable=False)
     price = Column(String(8))
     description = Column(String(300), nullable=False)

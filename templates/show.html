@@ -5,12 +5,12 @@
     <div class="row">
       <div class="col-sm-12 main">
         <div class="jumbotron main">
-            <h1>{{item.name.title()}}</h1>
-            <p>Description: {{item.description}}</p>
-            {% if item.edited_At %}
-              <p>Edited at: {{item.edited_At}}</p>
+            <h1>{{item.Item.name.title()}}</h1>
+            <p>Description: {{item.Item.description}}</p>
+            {% if item.Item.edited_At %}
+              <p>Edited at: {{item.Item.edited_At}}</p>
             {% else %}
-              <p>Create at: {{item.create_At}}</p>
+              <p>Create at: {{item.Item.create_At}}</p>
             {% endif %}
             <p>
               Category:
@@ -18,12 +18,13 @@
                 {{item.cat_name.title()}}
               </a>
             </p>
-            <img src="{{item.image}}" alt="" />
-            "{{item.image}}"
+            {% if item.Item.image %}
+              <img src="{{url_for('uploaded_file', filename=item.Item.image.split('/')[1])}}" alt="" height="400" width="400"/>
+            {% endif %}
             <p>
-              <a href="{{url_for('editItem', category_name = item.cat_name, item_id = item.id) }}">
+              <a href="{{url_for('editItem', category_name = item.cat_name, item_id = item.Item.id) }}">
               Edit</a> |
-              <a href="{{url_for('deleteItem', category_name = item.cat_name, item_id = item.id) }}">
+              <a href="{{url_for('deleteItem', category_name = item.cat_name, item_id = item.Item.id) }}">
               Delete</a>
               </p>
         </div> <!-- /jumbotron -->
