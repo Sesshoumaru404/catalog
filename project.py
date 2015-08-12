@@ -8,6 +8,7 @@ from catalog import Category, Base, Item
 from sqlalchemy.sql import func
 import os
 import random
+import string
 
 UPLOAD_FOLDER = 'images'
 ALLOWED_EXTENSIONS = set(['txt', 'pdf', 'png', 'jpg', 'jpeg', 'gif'])
@@ -56,7 +57,6 @@ def showCatalog():
         outerjoin(Category, Category.id == Item.category_id).order_by(Item.create_At.desc())
     tenLastest = session.query(Item).order_by(Item.create_At.desc())
     # Pagination(tenLastest,)
-    print tencat
     return render_template('index.html', catalogs=catalogCounts, lastest=tencat)
 
 @app.route('/catalog/<category_name>/<int:item_id>')
@@ -71,17 +71,36 @@ def showItem(category_name, item_id):
 
 @app.route('/catalog/<category_name>/<int:item_id>/edit', methods=['GET', 'POST'])
 def editItem(category_name, item_id):
+    categories =  session.query(Category.name).all()
     if checkCategory(category_name):
-        editedItem = session.query(Item).filter_by(id=item_id).one()
         if request.method == 'POST':
+            editedItem = session.query(Item).filter_by(id=item_id).one()
+            image = request.files['image']
+            imagepath = None
+            if image and allowed_file(image.filename):
+                filename = secure_filename(image.filename)
+                filename = unquieName(filename, item_id)
+                deletepath = editedItem.image
+                imagepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+                try:
+                    if editedItem.image:
+                        os.remove(deletepath)
+                    image.save(imagepath)
+                    editedItem.image = imagepath
+                except Exception as e:
+                    os.remove(imagepath)
+                    editedItem.image = None
+                    flash(e)
+                    return redirect(url_for('editItem', category_name = category_name, item_id = item_id))
             for attr in request.form:
                 if request.form[attr]:
+                    if attr == 'image':
+                        pass
                     setattr(editedItem, attr, request.form[attr])
             session.add(editedItem)
             session.commit()
             flash('Item Successfully Edited')
-            return redirect(url_for('showCatalog'))
-        categories =  session.query(Category).all()
+            return redirect(url_for('showItem', category_name = category_name, item_id= item_id))
         item = session.query(Item.id, Item.name, Item.price, Item.description,
                              Item.create_At, Category.name.label('cat_name')).\
             outerjoin(Category, Category.id == Item.category_id).\
@@ -117,7 +136,8 @@ def deleteItem(category_name, item_id):
         filter(Item.id == item_id, Category.name == category_name).one()
     itemToDelete = session.query(Item).filter(Item.id == item_id).one()
     if request.method == 'POST':
-        os.remove(itemToDelete.image)
+        if itemToDelete.image:
+            os.remove(itemToDelete.image)
         session.delete(itemToDelete)
         session.commit()
         flash('Item Successfully Deleted')
@@ -159,26 +179,25 @@ def page_not_found(e):
 def checkCategory(category):
     #Prevent fake url
     q = session.query(Category).filter(Category.name == category).count()
-    return q > 0
+    return q != 0
 
 def unquieName(name, itemId=None):
     if itemId:
-        folder = name.split('/')[0]
-        title = name.split('_')[0]
-        ending = name.split('.')[-1]
-        title += "_%s." % itemId
-        newfilename = folder + "/" + title + ending
+        title = name.split('.',1)[0]
+        ending = name.split('.',1)[-1]
+        title += "_item_id_%s." % itemId
+        newfilename = title + ending
         return newfilename
     else:
-        title = name.split('.')[0]
-        ending = name.split('.')[-1]
+        title = name.split('.',1)[0]
+        ending = name.split('.',1)[-1]
         randonNum = ''.join(random.choice(string.ascii_uppercase + string.digits) for _ in range(12))
         title += "_new_" + randonNum + '.' + ending
         return title
 
 def allowed_file(filename):
     return '.' in filename and \
-           filename.rsplit('.', 1)[1] in ALLOWED_EXTENSIONS
+           filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
 
 if __name__ == '__main__':

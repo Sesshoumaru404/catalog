@@ -3,7 +3,6 @@
 
 {% block content %}
   <div class="container">
-      {% include "flash.html" %}
     <div class="row">
       <div class="col-sm-2 sidebar">
         <div class="sidebar-module">
@@ -43,7 +42,7 @@
                     <td>{{x.id}}</td>
                     <td>{{x.name.title()}} {% if x.image %}  <span class="badge"><span class="glyphicon glyphicon-picture"></span></span> {% endif %}</td>
                     <td>{{x.cat_name.title()}}</td>
-                    <td>{{x.price}}</td>
+                    <td>$ {{'%0.2f' % x.price}}</td>
                   </tr>
                 {% endfor  %}
 

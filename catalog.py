@@ -1,4 +1,4 @@
-from sqlalchemy import Column, ForeignKey, Integer, String, DateTime, func, BLOB
+from sqlalchemy import Column, ForeignKey, Integer, String, DateTime, func, Float
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship
 from sqlalchemy import create_engine
@@ -31,7 +31,7 @@ class Item(Base):
     create_At = Column(DateTime, default=func.now())
     edited_At = Column(DateTime, default=func.now(), onupdate=func.now())
     name = Column(String(50), nullable=False)
-    price = Column(String(8))
+    price = Column(Float, default=0.00)
     description = Column(String(300), nullable=False)
     image = Column(String())
     category_id = Column(Integer, ForeignKey('category.id'))
