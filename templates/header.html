@@ -15,6 +15,22 @@
         <!-- <li><a href="{{url_for('createItem')}}">Add Categorys</a></li> -->
         <li><a href="{{url_for('createItem')}}">Add Item</a></li>
         <li><a href="{{url_for('showLogin')}}">Login</a></li>
+        <li><a href="/disconnect">Logout</a></li>
+        <li>
+          <!-- GOOGLE PLUS SIGN IN-->
+          <div id="signInButton" class='signinButton'>
+            <span class="g-signin"
+              data-scope="openid email"
+              data-clientid="13140951618-15nik769cellkubaqnjk5facdib2dh4d.apps.googleusercontent.com"
+              data-redirecturi="postmessage"
+              data-accesstype="offline"
+              data-cookiepolicy="single_host_origin"
+              data-callback="signInCallback"
+              data-approvalprompt="force">
+            </span>
+          </div><!-- /signInButton -->
+
+        </li>
       </ul>
     </div><!--/.nav-collapse -->
   </div>
