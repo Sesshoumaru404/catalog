@@ -1,6 +1,5 @@
-__author__ = 'sesshoumaru404@outlook.com (Paul)'
-
-from flask import Flask, render_template, request, redirect,jsonify, url_for, flash, send_from_directory, make_response
+from flask import Flask, render_template, request, redirect, jsonify
+from flask import url_for, flash, send_from_directory, make_response
 from flask import session as login_session
 from werkzeug import secure_filename
 from werkzeug.contrib.atom import AtomFeed
@@ -8,6 +7,7 @@ from flask_wtf.csrf import CsrfProtect
 from sqlalchemy import create_engine, asc, text, inspect
 from sqlalchemy.orm import sessionmaker
 from catalog import Category, Base, Item
+from pagination import Pagination
 from sqlalchemy.sql import func
 import os, json
 import random, string, httplib2
@@ -16,6 +16,7 @@ from oauth2client.client import flow_from_clientsecrets
 from oauth2client.client import FlowExchangeError
 import requests
 
+__author__ = 'sesshoumaru404@outlook.com (Paul)'
 
 UPLOAD_FOLDER = 'images'
 ALLOWED_EXTENSIONS = set(['txt', 'pdf', 'png', 'jpg', 'jpeg', 'gif'])
@@ -31,7 +32,7 @@ app.config['MAX_CONTENT_LENGTH'] = 2 * 1024 * 1024
 app.secret_key = ''.join(random.choice(string.ascii_uppercase + string.digits)
                          for x in xrange(32))
 CsrfProtect(app)
-#Connect to Database and create database session
+# Connect to Database and create database session
 engine = create_engine('sqlite:///categoryproject.db')
 Base.metadata.bind = engine
 
@@ -44,6 +45,7 @@ def catalogJSON():
     catalogs = session.query(Category).all()
     return jsonify(restaurants=[r.column_descriptions for r in catalogs])
 
+
 @app.route('/items/ATOM')
 def catalogATOM():
     items = session.query(Item).all()
@@ -51,9 +53,10 @@ def catalogATOM():
 
     for c in items:
         feed.add(c.name,
-                 id= url_for('showItem'),
+                 id=url_for('showItem'),
                  updated=c.create_At)
     return feed.get_response()
+
 
 # Create anti-forgery state token
 @app.route('/login', methods=['GET'])
@@ -63,6 +66,7 @@ def showLogin():
     login_session['state'] = state
     # return "The current session state is %s" % login_session['state']
     return render_template('login.html', STATE=state)
+
 
 @app.route('/connect', methods=['POST'])
 def googleConnect():
@@ -137,11 +141,12 @@ def googleConnect():
     response.headers['Content-Type'] = 'application/json'
     return response
 
+
 @app.route('/disconnect')
 def gdisconnect():
         # Only disconnect a connected user.
     credentials = login_session.get('credentials')
-    if credentials is None:        
+    if credentials is None:
         flash('Current user not connected.')
         return redirect(url_for('showCatalog'))
     access_token = credentials.access_token
@@ -165,20 +170,54 @@ def gdisconnect():
         return response
 
 
-#Show all restaurants
+# Show all restaurants
 @app.route('/')
-@app.route('/catalog/')
-def showCatalog():
+@app.route('/catalog/<int:page>')
+def showCatalog(category_name=None, page=1):
+    stop = page * 10
+    if page == 1:
+        start = 0
+    else:
+        start = stop - 10
     subq = session.query(Item.category_id, func.count('*').label('item_count')).\
         group_by(Item.category_id).subquery()
     catalogCounts = session.query(Category.id, Category.name, subq.c.item_count).\
         outerjoin(subq, Category.id == subq.c.category_id).order_by(Category.name.asc())
     tencat = session.query(Item.id, Item.name, Item.image, Item.price, Category.name.label('cat_name')).\
         outerjoin(Category, Category.id == Item.category_id).order_by(Item.create_At.desc())
+    testten = tencat.slice(start, stop)
+    tencount = tencat.count()
     tenLastest = session.query(Item).order_by(Item.create_At.desc())
+    pagination = Pagination(page, 10, tencount)
     # Pagination(tenLastest,)
     userLoggedIn()
-    return render_template('index.html', catalogs=catalogCounts, lastest=tencat)
+    return render_template('index.html', catalogs=catalogCounts, lastest=testten, pagination=pagination)
+
+
+
+@app.route('/catalog/<category_name>/<int:page>')
+def categoryItems(category_name,page=1):
+    stop = page * 10
+    if page == 1:
+        start = 0
+    else:
+        start = stop - 10
+    if checkCategory(category_name):
+        subq = session.query(Item.category_id, func.count('*').\
+                             label('item_count')).\
+                             group_by(Item.category_id).subquery()
+        catalogCounts = session.query(Category.id, Category.name, subq.c.item_count).\
+            outerjoin(subq, Category.id == subq.c.category_id).order_by(Category.name.asc())
+        categoryItems = session.query(Item.id, Item.name, Item.price, Category.name.label('cat_name')).\
+            outerjoin(Category, Category.id == Item.category_id).filter(Category.name == category_name)
+        tenLastest = session.query(Item).order_by(Item.create_At.desc())
+        testten = categoryItems.slice(start, stop)
+        tencount = categoryItems.count()
+        pagination = Pagination(page, 10, tencount)
+        return render_template('index.html', catalogs=catalogCounts, lastest=testten, title=category_name, pagination = pagination)
+    else:
+        return page_not_found("404: Not Found")
+
 
 @app.route('/catalog/<category_name>/<int:item_id>')
 def showItem(category_name, item_id):
@@ -227,22 +266,6 @@ def editItem(category_name, item_id):
             outerjoin(Category, Category.id == Item.category_id).\
             filter(Item.id == item_id, Category.name == category_name).one()
         return render_template('edit.html', item = item, categories = categories )
-    else:
-        return page_not_found("404: Not Found")
-
-
-@app.route('/catalog/<category_name>/items')
-def categoryItems(category_name):
-    if checkCategory(category_name):
-        subq = session.query(Item.category_id, func.count('*').\
-                             label('item_count')).\
-                             group_by(Item.category_id).subquery()
-        catalogCounts = session.query(Category.id, Category.name, subq.c.item_count).\
-            outerjoin(subq, Category.id == subq.c.category_id).order_by(Category.name.asc())
-        categoryItems = session.query(Item.id, Item.name, Item.price, Category.name.label('cat_name')).\
-            outerjoin(Category, Category.id == Item.category_id).filter(Category.name == category_name)
-        tenLastest = session.query(Item).order_by(Item.create_At.desc())
-        return render_template('index.html', catalogs=catalogCounts, lastest=categoryItems, title=category_name)
     else:
         return page_not_found("404: Not Found")
 
@@ -325,6 +348,14 @@ def userLoggedIn():
         print login_session['user']
     else:
         print "False"
+
+# def url_for_other_page(page):
+#     args = request.view_args.copy()
+#     args['page'] = page
+#     return url_for(request.endpoint, **args)
+
+
+# app.jinja_env.globals['url_for_other_page'] = url_for_other_page
 
 
 if __name__ == '__main__':

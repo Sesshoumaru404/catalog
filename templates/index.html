@@ -1,6 +1,40 @@
 
 {% extends "main.html" %}
 
+
+
+{% macro render_pagination(pagination) %}
+<nav>
+  <ul class="pagination pagination-sm">
+    {% if pagination.has_prev %}
+    <li>
+        <a href="{{ url_for('showCatalog', page = pagination.page - 1) }}" aria-label="Previous"><span aria-hidden="true">&laquo;</span></a>
+    </li>
+    {% else %}
+      <li class="disabled"><a href="#" aria-label="Previous"><span aria-hidden="true">&laquo;</span></a></li>
+    {% endif %}
+    {%- for page in range(1, pagination.pages +1) %}
+      {% if page %}
+        {% if page != pagination.page %}
+        <li><a href="{{ url_for('showCatalog', page = page) }}">{{ page }}</a></li>
+        {% else %}
+          <li class="active"><a href="#">{{ page }} <span class="sr-only">(current)</span></a></li>
+        {% endif %}
+      {% else %}
+        <span class=ellipsis>…</span>
+      {% endif %}
+    {%- endfor %}
+    {% if pagination.has_next %}
+      <li>
+          <a href="{{ url_for('showCatalog', page = pagination.page+1) }}" aria-label="Next"><span aria-hidden="true">&raquo;</span></a>
+      </li>
+    {% else %}
+        <li class="disabled"><a href="#" aria-label="Next"><span aria-hidden="true">&raquo;</span></a></li>
+    {% endif %}
+  </ul>
+</nav>
+{% endmacro %}
+
 {% block content %}
   <div class="container">
     <div class="row">
@@ -10,7 +44,7 @@
           <ol class="list-unstyled">
               {% for x in catalogs %}
                 <li>
-                  <a href="{{url_for('categoryItems', category_name = x.name) }}">
+                  <a href="{{url_for('categoryItems', category_name = x.name, page=1) }}">
                     {{x.name.title()}}
                   </a>
                 - <span class="count">{{x.item_count}}</span> </li>
@@ -49,7 +83,7 @@
               </tbody>
             </table>
           </div>
-
+          {{render_pagination(pagination)}}
       </div><!-- /.main -->
 
     </div><!-- /.row -->
