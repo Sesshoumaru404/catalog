@@ -205,41 +205,39 @@ def gdisconnect():
         return response
 
 
-# Show all restaurants
+# Show all Items
 @app.route('/')
 @app.route('/catalog/<int:page>', methods=['GET'])
 @app.route('/catalog/<category_name>/<int:page>', methods=['GET'])
 def showCatalog(category_name=None, page=1):
     start, stop = slices(page, PER_PAGE)
-    subq = session.query(Item.category_id, func.count('*').label('item_count')).\
-        group_by(Item.category_id).subquery()
-    categorieswithCounts = session.query(Category.id, Category.name, subq.c.item_count).\
-        outerjoin(subq, Category.id == subq.c.category_id).order_by(Category.name.asc())
+    categorieswithCounts = session.query(Category).order_by(Category.name.asc())
+    items = session.query(Item).order_by(Item.edited_At.desc())
+    category = False
     if category_name:
         if checkCategory(category_name):
             items = session.query(Item).filter(Item.category.has(name=category_name))
             category = category_name
         else:
             return page_not_found("404: Not Found")
-    else:
-        items = session.query(Item).order_by(Item.edited_At.desc())
-        category = False
     item_list = items.slice(start, stop)
     item_count = items.count()
     pagination = Pagination(page, PER_PAGE, item_count)
     return render_template('index.html', categories=categorieswithCounts, lastest=item_list, pagination=pagination, category=category)
 
 
+# Show an Item
 @app.route('/catalog/<category_name>', methods=['GET'])
 def showItem(category_name):
     item_id = request.args.get('item')
     if checkCategory(category_name):
         item = session.query(Item).filter(Item.id == item_id).one()
-        print item.category.name
         return render_template('show.html', item = item)
     else:
-        return page_not_found("404: Not Found")
+        return page_not_found("Invaild category")
 
+
+# Edit a item
 @app.route('/catalog/<category_name>/edit', methods=['GET', 'POST'])
 def editItem(category_name):
     if not userLoggedIn():
@@ -281,9 +279,10 @@ def editItem(category_name):
             return redirect(url_for('showItem', category_name = category_name, item = item_id))
         else:
             item = session.query(Item).filter(Item.id == item_id).one()
-            return render_template('edit.html', categories=categories, item = item )
+            return render_template('update.html', categories=categories, item = item )
     else:
         return page_not_found("404: Not Found")
+
 
 # Delete a menu item
 @app.route('/catalog/<category_name>/delete', methods=['GET', 'POST'])
@@ -329,9 +328,9 @@ def createItem():
         session.add(newItem)
         session.flush()
         session.commit()
-        flash('Item Successfully created')
+        flash(newItem.name + ' Successfully created')
         return redirect(url_for('showItem', category_name = newItem.category.name, item = newItem.id))
-    return render_template('new.html', categories = categories, new=True)
+    return render_template('update.html', categories = categories, new=True)
 
 
 @app.route('/catalog/category/create', methods=['GET', 'POST'])
@@ -343,14 +342,31 @@ def createCategory():
         name = request.form['name'].lower()
         if session.query(Category).filter(Category.name == name).first():
             flash('Category exist with that name')
-            return redirect(url_for('showCatalog'))
+            return redirect(url_for('createCategory'))
+        category = Category(name=name)
+        session.add(category)
+        session.commit()
+        flash(name.title() + ' successfully created')
+        return redirect(url_for('showCatalog'))
+    return render_template('updatecategory.html', newCategory=True)
+
+@app.route('/catalog/category/edit', methods=['GET', 'POST'])
+def createCategory():
+    if not userLoggedIn():
+        flash('Must be logged in to create new category')
+        return redirect(url_for('showCatalog'))
+    if request.method == 'POST':
+        name = request.form['name'].lower()
+        if session.query(Category).filter(Category.name == name).first():
+            flash('Category exist with that name')
+            return redirect(url_for('createCategory'))
         category = Category(name=name)
         session.add(category)
         session.commit()
         flash(name.title() + ' successfully created')
         return redirect(url_for('showCatalog'))
 
-    return render_template('newcategory.html', new=True)
+    return render_template('updatecategory.html')
 
 @app.route('/catalog/category/delete', methods=['GET', 'POST'])
 def deleteCategory():
@@ -358,15 +374,12 @@ def deleteCategory():
         flash('Must be logged in to delete new category')
         return redirect(url_for('showCatalog'))
     category_name = request.args.get('name')
-    subq = session.query(Item.category_id, func.count('*').label('item_count')).\
-        group_by(Item.category_id).subquery()
-    delete_category = session.query(Category, subq.c.item_count).\
-        outerjoin(subq, Category.id == subq.c.category_id).filter(Category.name == category_name)
+    delete_category = session.query(Category).filter(Category.name == category_name)
     if request.method == 'POST':
-        if delete_category.first().item_count is not None:
+        if delete_category.first().items != [] :
             flash('Cannot erase a non empty category')
             return redirect(url_for('showCatalog'))
-        session.delete(delete_category.first().Category)
+        session.delete(delete_category.first())
         session.commit()
         flash(category_name.title() + ' successfully Deleted')
         return redirect(url_for('showCatalog'))

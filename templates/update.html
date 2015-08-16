@@ -5,28 +5,33 @@
     <div class="row">
       <div class="col-sm-12 main">
         <div class="jumbotron">
-            <h2>New Item</h2>
-            <form action="#" method="post" enctype=multipart/form-data data-toggle="validator">
+            <h2>{{'New Item' if new else 'Edit item'}}</h2>
+            <form action="{{'#' if new else url_for('editItem', category_name = item.category.name, item = item.id) }}#"
+             method="post" enctype=multipart/form-data data-toggle="validator">
       				<div class="form-group">
                 <input name=_csrf_token type=hidden value="{{ csrf_token () }}">
 
                 <div class="form-group">
                   <div class="input-group">
                     <label for="inputName" class="control-label">Name</label>
-                    <input type="text" class="form-control" id="inputName" name=name required>
+                    <input type="text" class="form-control" id="inputName" name=name value='{{'' if new else item.name}}' required>
                   </div>
                 </div>
 
                 <div class="form-group">
                   <label for="inputEmail">Description</label>
-                  <textarea class="form-control" name="description" rows="3"></textarea>
+                  <textarea class="form-control" name="description" rows="3">{{'' if new else item.description}}</textarea>
                 </div>
 
                 <div class="form-group has-feedback">
                   <span class="sr-only" for="exampleInputAmount">Amount (in dollars)</span>
                   <div class="input-group">
                     <span class="input-group-addon">$</span>
-                    <input type="text"  pattern="^((\d{1,3}(,\d{3})+)|(\d{1,3}))(\.(\d{2})?)$" class="form-control" name="price" placeholder="Example: 1,234.56" required>
+                    <input type="text" class="form-control" name="price"
+                    pattern="^((\d{1,3}(,\d{3})+)|(\d{1,3}))(\.(\d{2})?)$"
+                     placeholder="Example: 1,234.56"
+                     value='{{'' if new else item.price}}'
+                    required>
                   </div>
                   <span class="glyphicon form-control-feedback" aria-hidden="true"></span>
                 </div>
@@ -44,7 +49,7 @@
                 </div>
       					<div class="padding-bottom"></div>
       					<button type="submit" class="btn btn-default" id="submit" type="submit">
-      					<span class="glyphicon glyphicon-ok" aria-hidden="true"></span>Create</button>
+      					<span class="glyphicon glyphicon-ok" aria-hidden="true"></span>{{'Create' if new else 'Edit'}}</button>
       				</div>
       			</form>
             <a href = '{{url_for('showCatalog')}}'>

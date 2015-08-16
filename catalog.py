@@ -1,6 +1,6 @@
 from sqlalchemy import Column, ForeignKey, Integer, String, DateTime, func, Float
 from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import relationship
+from sqlalchemy.orm import relationship, backref
 from sqlalchemy import create_engine
 
 
@@ -28,6 +28,7 @@ class Category(Base):
 
     id = Column(Integer, primary_key=True)
     name = Column(String(50), nullable=False)
+    # items = relationship("Item", order_by="Item.id", backref="category")
 
     def itemsInCategory():
         return
@@ -52,7 +53,7 @@ class Item(Base):
     image = Column(String())
     category_id = Column(Integer, ForeignKey('category.id'))
     user_id = Column(Integer, ForeignKey('user.id'))
-    category = relationship(Category)
+    category = relationship('Category', backref=backref('items', order_by=id))
     user = relationship(User)
 
     @property
