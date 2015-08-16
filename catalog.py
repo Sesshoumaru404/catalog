@@ -10,9 +10,18 @@ Base = declarative_base()
 class User(Base):
     __tablename__ = 'user'
 
-    id =  Column(Integer, primary_key=True)
+    id = Column(Integer, primary_key=True)
     email = Column(String(100), nullable=False)
     name = Column(String(110), nullable=False)
+
+    @property
+    def serialize(self):
+        """Return object data in easily serializeable format"""
+        return {
+            'name': self.name,
+            'email': self.email
+        }
+
 
 class Category(Base):
     __tablename__ = 'category'
@@ -24,12 +33,12 @@ class Category(Base):
         return
 
     @property
-    def json(self):
+    def serialize(self):
         """Return object data in easily serializeable format"""
         return {
             'name': self.name,
-            'id': self.id,
         }
+
 
 class Item(Base):
     __tablename__ = 'item'
@@ -42,16 +51,18 @@ class Item(Base):
     description = Column(String(300), nullable=False)
     image = Column(String())
     category_id = Column(Integer, ForeignKey('category.id'))
+    user_id = Column(Integer, ForeignKey('user.id'))
     category = relationship(Category)
+    user = relationship(User)
 
     @property
     def serialize(self):
-        #Return objects data in easily serialize format
+        # Return objects data in easily serialize format
         return {
             'name': self.name,
             'description': self.description,
-            'id': self.id,
-            'category_id': self.category_id
+            'create_At': self.create_At,
+            'category_name': self.category.name
         }
 
 

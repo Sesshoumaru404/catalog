@@ -1,22 +1,30 @@
 
 {% extends "main.html" %}
 
-
-
 {% macro render_pagination(pagination) %}
 <nav>
   <ul class="pagination pagination-sm">
     {% if pagination.has_prev %}
-    <li>
-        <a href="{{ url_for('showCatalog', page = pagination.page - 1) }}" aria-label="Previous"><span aria-hidden="true">&laquo;</span></a>
-    </li>
+      {% if category %}
+        <li>
+            <a href="{{ url_for('showCatalog', category_name = category, page = pagination.page - 1) }}" aria-label="Previous"><span aria-hidden="true">&laquo;</span></a>
+        </li>
+      {% else %}
+        <li>
+            <a href="{{ url_for('showCatalog', page = pagination.page - 1) }}" aria-label="Previous"><span aria-hidden="true">&laquo;</span></a>
+        </li>
+      {% endif %}
     {% else %}
       <li class="disabled"><a href="#" aria-label="Previous"><span aria-hidden="true">&laquo;</span></a></li>
     {% endif %}
     {%- for page in range(1, pagination.pages +1) %}
       {% if page %}
         {% if page != pagination.page %}
-        <li><a href="{{ url_for('showCatalog', page = page) }}">{{ page }}</a></li>
+          {% if category %}
+            <li><a href="{{ url_for('showCatalog', category_name = category, page = page) }}">{{page}}</a></li>
+          {% else %}
+            <li><a href="{{ url_for('showCatalog', page = page) }}">{{ page }}</a></li>
+          {% endif %}
         {% else %}
           <li class="active"><a href="#">{{ page }} <span class="sr-only">(current)</span></a></li>
         {% endif %}
@@ -25,9 +33,15 @@
       {% endif %}
     {%- endfor %}
     {% if pagination.has_next %}
-      <li>
-          <a href="{{ url_for('showCatalog', page = pagination.page+1) }}" aria-label="Next"><span aria-hidden="true">&raquo;</span></a>
-      </li>
+      {% if category %}
+        <li>
+            <a href="{{ url_for('showCatalog', category_name = category, page = pagination.page+1) }}" aria-label="Next"><span aria-hidden="true">&raquo;</span></a>
+        </li>
+      {% else %}
+        <li>
+            <a href="{{ url_for('showCatalog', page = pagination.page+1) }}" aria-label="Next"><span aria-hidden="true">&raquo;</span></a>
+        </li>
+      {% endif %}
     {% else %}
         <li class="disabled"><a href="#" aria-label="Next"><span aria-hidden="true">&raquo;</span></a></li>
     {% endif %}
@@ -42,12 +56,19 @@
         <div class="sidebar-module">
           <h4>Categories</h4>
           <ol class="list-unstyled">
-              {% for x in catalogs %}
+              {% for category in categories %}
                 <li>
-                  <a href="{{url_for('categoryItems', category_name = x.name, page=1) }}">
-                    {{x.name.title()}}
+                  <a href="{{url_for('showCatalog', category_name = category.name, page=1) }}">
+                    {{category.name.title()}}
                   </a>
-                - <span class="count">{{x.item_count}}</span> </li>
+                  {% if category.item_count %}
+                    - <span class="count">{{category.item_count}}</span>
+                  {% else %}
+                    <a href="{{ url_for('deleteCategory', name = category.name) }}">
+                      <span class="glyphicon glyphicon-trash"></span>
+                    </a>
+                  {% endif %}
+                </li>
               {% endfor  %}
           </ol>
         </div>
@@ -55,8 +76,8 @@
       </div><!-- /.blog-sidebar -->
 
         <div class="col-sm-9 main">
-          {% if title %}
-            <h2 class="sub-header">{{title.title()}} Items ({{lastest.count()}} items)</h2>
+          {% if category %}
+            <h2 class="sub-header">{{category.title()}} Items ({{lastest.count()}} items)</h2>
           {% else %}
             <h2 class="sub-header">Lastest Items</h2>
           {% endif %}
@@ -64,7 +85,6 @@
             <table class="table table-striped">
               <thead>
                 <tr>
-                  <th>#</th>
                   <th>Name</th>
                   <th>Category</th>
                   <th>Price</th>
@@ -72,10 +92,9 @@
               </thead>
               <tbody>
                 {% for x in lastest %}
-                  <tr class='clickable-row' data-href='{{url_for('showItem', category_name = x.cat_name, item_id= x.id) }}'>
-                    <td>{{x.id}}</td>
+                  <tr class='clickable-row' data-href='{{url_for('showItem', category_name = x.category.name, item= x.id) }}'>
                     <td>{{x.name.title()}} {% if x.image %}  <span class="badge"><span class="glyphicon glyphicon-picture"></span></span> {% endif %}</td>
-                    <td>{{x.cat_name.title()}}</td>
+                    <td>{{x.category.name.title()}}</td>
                     <td>$ {{'%0.2f' % x.price}}</td>
                   </tr>
                 {% endfor  %}
@@ -85,7 +104,6 @@
           </div>
           {{render_pagination(pagination)}}
       </div><!-- /.main -->
-
     </div><!-- /.row -->
 
   </div><!-- /.container -->

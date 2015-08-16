@@ -32,7 +32,7 @@
                 </div>
 
                 <label for="name">Category:</label>
-                <select class="form-control" name="category_id">
+                <select class="form-control" name="category">
                   {% for x in categories %}
                       <option value ="{{x.id}}" >{{x.name.title()}}</option>
                   {% endfor %}

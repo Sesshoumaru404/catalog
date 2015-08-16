@@ -6,15 +6,34 @@
       <div class="col-sm-12">
         <div class="jumbotron">
             <h2>Delete Item</h2>
-            <p>
-              Are you sure you want to delete {{item.name.title()}}?
-            </p>
+            {% if category %}
+              <p>
+                Are you sure you want to delete {{category}}?
+              </p>
+            {% else %}
+              <p>
+                Are you sure you want to delete {{item.name.title()}}?
+              </p>
+            {% endif %}
             <form action="#" method = 'post'>
               <input name=_csrf_token type=hidden value="{{ csrf_token () }}">
-              <a class="btn btn-primary"
-                href="{{url_for('showItem', category_name = item.cat_name, item_id= item.id) }}"
-                role="button">
-                <span class="glyphicon glyphicon-arrow-left"></span> Go Back</a>
+              {% if category %}
+                <p>
+                  <a class="btn btn-primary"
+                    href="{{url_for('showCatalog')}}"
+                    role="button">
+                    <span class="glyphicon glyphicon-arrow-left"></span>
+                    Go Back
+                  </a>
+                </p>
+              {% else %}
+                <a class="btn btn-primary"
+                  href="{{url_for('showItem', category_name = item.cat_name, item_id= item.id) }}"
+                  role="button">
+                  <span class="glyphicon glyphicon-arrow-left"></span>
+                  Go Back
+                </a>
+              {% endif %}
             	<button type="submit" class="btn btn-danger delete" id="submit" type="submit">
             	<span class="glyphicon glyphicon-trash" aria-hidden="true"></span> Delete</button>
             </form>

@@ -12,25 +12,30 @@
     <div id="navbar" class="collapse navbar-collapse navbar-right">
       <ul class="nav navbar-nav">
         <li class="active"><a href="/">Home</a></li>
-        <!-- <li><a href="{{url_for('createItem')}}">Add Categorys</a></li> -->
-        <li><a href="{{url_for('createItem')}}">Add Item</a></li>
-        <li><a href="{{url_for('showLogin')}}">Login</a></li>
-        <li><a href="/disconnect">Logout</a></li>
-        <li>
-          <!-- GOOGLE PLUS SIGN IN-->
-          <div id="signInButton" class='signinButton'>
-            <span class="g-signin"
-              data-scope="openid email"
-              data-clientid="13140951618-15nik769cellkubaqnjk5facdib2dh4d.apps.googleusercontent.com"
-              data-redirecturi="postmessage"
-              data-accesstype="offline"
-              data-cookiepolicy="single_host_origin"
-              data-callback="signInCallback"
-              data-approvalprompt="force">
-            </span>
-          </div><!-- /signInButton -->
-
+        <li role="presentation" class="dropdown">
+            <a class="dropdown-toggle" data-toggle="dropdown" href="#" role="button" aria-haspopup="true" aria-expanded="false">
+              Feeds <span class="caret"></span>
+            </a>
+            <ul class="dropdown-menu">
+              <li><a href="{{url_for('catalogJSON',feed= 'categories')}}">Json - categories</a></li>
+              <li><a href="{{url_for('catalogJSON',feed= 'items')}}">Json- items</a></li>
+              <li><a href="{{url_for('catalogATOM')}}">Atom</a></li>
+            </ul>
         </li>
+        {% if userLoggedIn() %}
+        <li role="presentation" class="dropdown">
+            <a class="dropdown-toggle" data-toggle="dropdown" href="#" role="button" aria-haspopup="true" aria-expanded="false">
+              Add <span class="caret"></span>
+            </a>
+            <ul class="dropdown-menu">
+              <li><a href="{{url_for('createCategory')}}">Add Category</a></li>
+              <li><a href="{{url_for('createItem')}}">Add Item</a></li>
+            </ul>
+        </li>
+          <li><a href="/disconnect">Logout</a></li>
+        {% else%}
+          <li><a href="{{url_for('showLogin')}}">Login</a></li>
+        {% endif %}
       </ul>
     </div><!--/.nav-collapse -->
   </div>

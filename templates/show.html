@@ -5,31 +5,35 @@
     <div class="row main">
       <div class="col-sm-12">
         <div class="jumbotron">
-            <h1>{{item.Item.name.title()}}</h1>
-            <p>Description: {{item.Item.description}}</p>
-            {% if item.Item.edited_At != item.Item.create_At %}
-              <p>Edited at: {{item.Item.edited_At}}</p>
+            <h1>{{item.name.title()}}</h1>
+            <p>Description: {{item.description}}</p>
+            {% if item.edited_At != item.create_At %}
+              <p>Edited at: {{item.edited_At}}</p>
             {% else %}
-              <p>Create at: {{item.Item.create_At}}</p>
+              <p>Create at: {{item.create_At}}</p>
             {% endif %}
+            <p>
+              Post by: {{item.user.name.title() if item.user.name.title() else item.user.email.title().split('@')[0]}}
+            </p>
             <p>
               Category:
-              <a href="{{url_for('categoryItems', category_name = item.cat_name) }}">
-                {{item.cat_name.title()}}
+              <a href="{{url_for('showCatalog', category_name = item.category.name, page=1) }}">
+                {{item.category.name.title()}}
               </a>
             </p>
-            {% if item.Item.image %}
-              <img src="{{url_for('uploaded_file', filename=item.Item.image.split('/')[1])}}" alt="" height="400" width="400"/>
+            {% if item.image %}
+              <img src="{{url_for('uploaded_file', filename=item.image.split('/')[1])}}" alt="" height="400" width="400"/>
             {% endif %}
+            {% if matchUser(item.user.email) %}
             <p>
-            </a>
-              <a href="{{url_for('editItem', category_name = item.cat_name, item_id = item.Item.id) }}">
+              <a href="{{url_for('editItem', category_name = item.category.name, item = item.id) }}">
                 <button class="btn btn-primary delete">Edit</button>
               </a>
-              <a href="{{url_for('deleteItem', category_name = item.cat_name, item_id = item.Item.id) }}">
+              <a href="{{url_for('deleteItem', category_name = item.category.name, item = item.id) }}">
                 <button class="btn btn-primary delete">Delete</button>
               </a>
-              </p>
+            </p>
+            {% endif %}
         </div> <!-- /jumbotron -->
       </div> <!-- /main -->
     </div> <!-- /row -->

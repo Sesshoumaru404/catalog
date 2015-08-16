@@ -6,12 +6,14 @@ from werkzeug.contrib.atom import AtomFeed
 from flask_wtf.csrf import CsrfProtect
 from sqlalchemy import create_engine, asc, text, inspect
 from sqlalchemy.orm import sessionmaker
-from catalog import Category, Base, Item
-from pagination import Pagination
+from catalog import Category, Base, Item, User
+from helpers import Pagination, slices
 from sqlalchemy.sql import func
-import os, json
-import random, string, httplib2
-from oauth2client.client import AccessTokenRefreshError
+import os
+import json
+import random
+import string
+import httplib2
 from oauth2client.client import flow_from_clientsecrets
 from oauth2client.client import FlowExchangeError
 import requests
@@ -19,6 +21,7 @@ import requests
 __author__ = 'sesshoumaru404@outlook.com (Paul)'
 
 UPLOAD_FOLDER = 'images'
+PER_PAGE = 10
 ALLOWED_EXTENSIONS = set(['txt', 'pdf', 'png', 'jpg', 'jpeg', 'gif'])
 
 app = Flask(__name__)
@@ -40,21 +43,32 @@ DBSession = sessionmaker(bind=engine)
 session = DBSession()
 
 
-@app.route('/catalog/JSON')
+@app.route('/feeds')
 def catalogJSON():
-    catalogs = session.query(Category).all()
-    return jsonify(restaurants=[r.column_descriptions for r in catalogs])
+    feed = request.args.get('feed')
+    print feed
+    if feed == "categories":
+        categories = session.query(Category).all()
+        return jsonify(categories=[r.serialize for r in categories])
+    elif feed == "items":
+        items = session.query(Item).all()
+        return jsonify(items=[r.serialize for r in items])
+    else:
+        flash("Page Not Found")
+        return page_not_found("404: Not Found")
 
 
-@app.route('/items/ATOM')
+@app.route('/feeds/ATOM')
 def catalogATOM():
-    items = session.query(Item).all()
-    feed = AtomFeed('Items', feed_url=request.url, url=request.url_root)
+    items = session.query(Item).limit(1).all()
+    feed = AtomFeed('Items Feed', feed_url=request.url, url=request.url_root)
 
     for c in items:
-        feed.add(c.name,
-                 id=url_for('showItem'),
-                 updated=c.create_At)
+        feed.add(c.name, c.category.name,
+                 id=c.id,
+                 url=request.url_root + "catalog/%s" % c.category.name + "?item=%s" % c.id,
+                 content_type='html',
+                 updated=c.edited_At)
     return feed.get_response()
 
 
@@ -123,9 +137,8 @@ def googleConnect():
                                  200)
         response.headers['Content-Type'] = 'application/json'
         return response
-
     # Store the access token in the session for later use.
-    login_session['credentials'] = credentials
+    login_session['credentials'] = credentials.access_token
     login_session['gplus_id'] = gplus_id
 
     # Get user info
@@ -134,11 +147,32 @@ def googleConnect():
     answer = requests.get(userinfo_url, params=params)
 
     data = answer.json()
-
-    login_session['user'] = data
+    # First User to login is admin user
+    if session.query(User).first().name == 'admin':
+        user = session.query(User).first()
+        user.email = data['email']
+        user.name = data['name']
+        session.add(user)
+        session.commit()
+        login_session['email'] = user.email
+        login_session['name'] = user.name
+    else:
+        # Find user is not user create new user
+        findUser = session.query(User).filter(User.email == data['email'])
+        if findUser.first():
+            login_session['email'] = findUser.one().email
+            login_session['name'] = findUser.one().name
+        else:
+            newUser = User(email=data['email'],
+                           name=data['name'])
+            session.add(newUser)
+            session.commit()
+            login_session['email'] = newUser.email
+            login_session['name'] = newUser.name
 
     response = make_response(json.dumps('Successfully connected user.'), 200)
     response.headers['Content-Type'] = 'application/json'
+
     return response
 
 
@@ -149,16 +183,17 @@ def gdisconnect():
     if credentials is None:
         flash('Current user not connected.')
         return redirect(url_for('showCatalog'))
-    access_token = credentials.access_token
+    access_token = credentials
     url = 'https://accounts.google.com/o/oauth2/revoke?token=%s' % access_token
     h = httplib2.Http()
     result = h.request(url, 'GET')[0]
 
     if result['status'] == '200':
-        # Reset the user's sesson.
+        # Reset the user's session.
         del login_session['credentials']
         del login_session['gplus_id']
-        del login_session['user']
+        del login_session['email']
+        del login_session['name']
 
         flash('Successfully Logout.')
         return redirect(url_for('showCatalog'))
@@ -172,69 +207,52 @@ def gdisconnect():
 
 # Show all restaurants
 @app.route('/')
-@app.route('/catalog/<int:page>')
+@app.route('/catalog/<int:page>', methods=['GET'])
+@app.route('/catalog/<category_name>/<int:page>', methods=['GET'])
 def showCatalog(category_name=None, page=1):
-    stop = page * 10
-    if page == 1:
-        start = 0
-    else:
-        start = stop - 10
+    start, stop = slices(page, PER_PAGE)
     subq = session.query(Item.category_id, func.count('*').label('item_count')).\
         group_by(Item.category_id).subquery()
-    catalogCounts = session.query(Category.id, Category.name, subq.c.item_count).\
+    categorieswithCounts = session.query(Category.id, Category.name, subq.c.item_count).\
         outerjoin(subq, Category.id == subq.c.category_id).order_by(Category.name.asc())
-    tencat = session.query(Item.id, Item.name, Item.image, Item.price, Category.name.label('cat_name')).\
-        outerjoin(Category, Category.id == Item.category_id).order_by(Item.create_At.desc())
-    testten = tencat.slice(start, stop)
-    tencount = tencat.count()
-    tenLastest = session.query(Item).order_by(Item.create_At.desc())
-    pagination = Pagination(page, 10, tencount)
-    # Pagination(tenLastest,)
-    userLoggedIn()
-    return render_template('index.html', catalogs=catalogCounts, lastest=testten, pagination=pagination)
-
-
-
-@app.route('/catalog/<category_name>/<int:page>')
-def categoryItems(category_name,page=1):
-    stop = page * 10
-    if page == 1:
-        start = 0
+    if category_name:
+        if checkCategory(category_name):
+            items = session.query(Item).filter(Item.category.has(name=category_name))
+            category = category_name
+        else:
+            return page_not_found("404: Not Found")
     else:
-        start = stop - 10
-    if checkCategory(category_name):
-        subq = session.query(Item.category_id, func.count('*').\
-                             label('item_count')).\
-                             group_by(Item.category_id).subquery()
-        catalogCounts = session.query(Category.id, Category.name, subq.c.item_count).\
-            outerjoin(subq, Category.id == subq.c.category_id).order_by(Category.name.asc())
-        categoryItems = session.query(Item.id, Item.name, Item.price, Category.name.label('cat_name')).\
-            outerjoin(Category, Category.id == Item.category_id).filter(Category.name == category_name)
-        tenLastest = session.query(Item).order_by(Item.create_At.desc())
-        testten = categoryItems.slice(start, stop)
-        tencount = categoryItems.count()
-        pagination = Pagination(page, 10, tencount)
-        return render_template('index.html', catalogs=catalogCounts, lastest=testten, title=category_name, pagination = pagination)
-    else:
-        return page_not_found("404: Not Found")
+        items = session.query(Item).order_by(Item.edited_At.desc())
+        category = False
+    item_list = items.slice(start, stop)
+    item_count = items.count()
+    pagination = Pagination(page, PER_PAGE, item_count)
+    return render_template('index.html', categories=categorieswithCounts, lastest=item_list, pagination=pagination, category=category)
 
 
-@app.route('/catalog/<category_name>/<int:item_id>')
-def showItem(category_name, item_id):
+@app.route('/catalog/<category_name>', methods=['GET'])
+def showItem(category_name):
+    item_id = request.args.get('item')
     if checkCategory(category_name):
-        item = session.query(Item, Category.name.label('cat_name')).\
-            outerjoin(Category, Category.id == Item.category_id).\
-            filter(Item.id == item_id, Category.name == category_name).one()
+        item = session.query(Item).filter(Item.id == item_id).one()
+        print item.category.name
         return render_template('show.html', item = item)
     else:
         return page_not_found("404: Not Found")
 
-@app.route('/catalog/<category_name>/<int:item_id>/edit', methods=['GET', 'POST'])
-def editItem(category_name, item_id):
+@app.route('/catalog/<category_name>/edit', methods=['GET', 'POST'])
+def editItem(category_name):
+    if not userLoggedIn():
+        flash('Must be logged in to Edit Item')
+        return redirect(url_for('showCatalog'))
+    item_id = request.args.get('item')
     categories =  session.query(Category.name).all()
     if checkCategory(category_name):
         if request.method == 'POST':
-            editedItem = session.query(Item).filter_by(id=item_id).one()
+            editedItem = session.query(Item).filter(Item.id == item_id).one()
+            if not matchUser(editedItem.user.email):
+                flash('Cannot edit a item you did not create')
+                return redirect(url_for('showCatalog'))
             image = request.files['image']
             imagepath = None
             if image and allowed_file(image.filename):
@@ -251,7 +269,7 @@ def editItem(category_name, item_id):
                     os.remove(imagepath)
                     editedItem.image = None
                     flash(e)
-                    return redirect(url_for('editItem', category_name = category_name, item_id = item_id))
+                    return redirect(url_for('editItem', category_name = category_name, item = item_id))
             for attr in request.form:
                 if request.form[attr]:
                     if attr == 'image':
@@ -260,39 +278,41 @@ def editItem(category_name, item_id):
             session.add(editedItem)
             session.commit()
             flash('Item Successfully Edited')
-            return redirect(url_for('showItem', category_name = category_name, item_id= item_id))
-        item = session.query(Item.id, Item.name, Item.price, Item.description,
-                             Item.create_At, Category.name.label('cat_name')).\
-            outerjoin(Category, Category.id == Item.category_id).\
-            filter(Item.id == item_id, Category.name == category_name).one()
-        return render_template('edit.html', item = item, categories = categories )
+            return redirect(url_for('showItem', category_name = category_name, item = item_id))
+        else:
+            item = session.query(Item).filter(Item.id == item_id).one()
+            return render_template('edit.html', categories=categories, item = item )
     else:
         return page_not_found("404: Not Found")
 
 # Delete a menu item
-@app.route('/catalog/<category_name>/<int:item_id>/delete', methods=['GET', 'POST'])
-def deleteItem(category_name, item_id):
-    # if 'username' not in login_session:
-    #     return redirect('/login')
-    item = session.query(Item.id, Item.name, Item.price, Item.description,
-                         Item.create_At, Item.edited_At, Category.name.label('cat_name')).\
-        outerjoin(Category, Category.id == Item.category_id).\
-        filter(Item.id == item_id, Category.name == category_name).one()
+@app.route('/catalog/<category_name>/delete', methods=['GET', 'POST'])
+def deleteItem(category_name):
+    item_id = request.args.get('item')
     itemToDelete = session.query(Item).filter(Item.id == item_id).one()
-    if request.method == 'POST':
-        if itemToDelete.image:
-            os.remove(itemToDelete.image)
-        session.delete(itemToDelete)
-        session.commit()
-        flash('Item Successfully Deleted')
-        return redirect(url_for('showCatalog'))
+    if matchUser(itemToDelete.user.email):
+        if request.method == 'POST':
+            if itemToDelete.image:
+                os.remove(itemToDelete.image)
+            session.delete(itemToDelete)
+            session.commit()
+            flash(itemToDelete.name.title() + ' successfully Deleted')
+            return redirect(url_for('showCatalog'))
+        else:
+            return render_template('deleteItem.html', item=itemToDelete)
     else:
-        return render_template('deleteItem.html', item=item)
+        flash('Must be logged in to Delete')
+        return redirect(url_for('showItem', category_name = category_name, item = item_id))
 
-@app.route('/catalog/create', methods=['GET', 'POST'])
+
+@app.route('/catalog/item/create', methods=['GET', 'POST'])
 def createItem():
+    if not userLoggedIn():
+        flash('Must be logged in to Create Item')
+        return redirect(url_for('showCatalog'))
     categories = session.query(Category).all()
     if request.method == 'POST':
+        user = session.query(User).filter(User.email == login_session['email']).one()
         image = request.files['image']
         imagepath = None
         if image and allowed_file(image.filename):
@@ -303,13 +323,57 @@ def createItem():
         newItem = Item(name=request.form['name'],
                        description=request.form['description'],
                        price=request.form['price'],
-                       category_id=request.form['category_id'],
+                       category_id=request.form['category'],
+                       user_id=user.id,
                        image=imagepath)
         session.add(newItem)
+        session.flush()
         session.commit()
         flash('Item Successfully created')
-        return redirect(url_for('showCatalog'))
+        return redirect(url_for('showItem', category_name = newItem.category.name, item = newItem.id))
     return render_template('new.html', categories = categories, new=True)
+
+
+@app.route('/catalog/category/create', methods=['GET', 'POST'])
+def createCategory():
+    if not userLoggedIn():
+        flash('Must be logged in to create new category')
+        return redirect(url_for('showCatalog'))
+    if request.method == 'POST':
+        name = request.form['name'].lower()
+        if session.query(Category).filter(Category.name == name).first():
+            flash('Category exist with that name')
+            return redirect(url_for('showCatalog'))
+        category = Category(name=name)
+        session.add(category)
+        session.commit()
+        flash(name.title() + ' successfully created')
+        return redirect(url_for('showCatalog'))
+
+    return render_template('newcategory.html', new=True)
+
+@app.route('/catalog/category/delete', methods=['GET', 'POST'])
+def deleteCategory():
+    if not userLoggedIn():
+        flash('Must be logged in to delete new category')
+        return redirect(url_for('showCatalog'))
+    category_name = request.args.get('name')
+    subq = session.query(Item.category_id, func.count('*').label('item_count')).\
+        group_by(Item.category_id).subquery()
+    delete_category = session.query(Category, subq.c.item_count).\
+        outerjoin(subq, Category.id == subq.c.category_id).filter(Category.name == category_name)
+    if request.method == 'POST':
+        if delete_category.first().item_count is not None:
+            flash('Cannot erase a non empty category')
+            return redirect(url_for('showCatalog'))
+        session.delete(delete_category.first().Category)
+        session.commit()
+        flash(category_name.title() + ' successfully Deleted')
+        return redirect(url_for('showCatalog'))
+
+    return render_template('deleteItem.html', category=category_name)
+
+
 
 @app.route('/uploads/<filename>')
 def uploaded_file(filename):
@@ -343,20 +407,24 @@ def allowed_file(filename):
     return '.' in filename and \
            filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
+
 def userLoggedIn():
-    if 'user' in login_session:
-        print login_session['user']
+    if 'email' in login_session:
+        return True
     else:
-        print "False"
+        return False
 
-# def url_for_other_page(page):
-#     args = request.view_args.copy()
-#     args['page'] = page
-#     return url_for(request.endpoint, **args)
+app.jinja_env.globals['userLoggedIn'] = userLoggedIn
 
 
-# app.jinja_env.globals['url_for_other_page'] = url_for_other_page
+def matchUser(post_user):
+    if userLoggedIn():
+        signinUser = login_session['email']
+        if signinUser == post_user :
+            return True
+    return False
 
+app.jinja_env.globals['matchUser'] = matchUser
 
 if __name__ == '__main__':
     app.secret_key = "Paul"

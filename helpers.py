@@ -19,3 +19,15 @@ class Pagination(object):
     @property
     def has_next(self):
         return self.page < self.pages
+
+
+def slices(page, per_page):
+    '''
+    Used to help setup pagination
+    '''
+    stop = page * per_page
+    if page == 1:
+        start = 0
+    else:
+        start = stop - per_page
+    return start, stop
