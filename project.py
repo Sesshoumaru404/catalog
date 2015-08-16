@@ -242,7 +242,7 @@ def showCatalog(category_name=None, page=1):
     pagination = Pagination(page, PER_PAGE, item_count)
     return render_template('index.html', categories=categorieswithCounts,
                            lastest=item_list, pagination=pagination,
-                           category=category)
+                           category=category, item_count=item_count)
 
 
 # Show an Item
@@ -307,7 +307,7 @@ def editItem(category_name):
         return page_not_found("404: Not Found")
 
 
-# Delete a menu item
+# Delete a category item
 @app.route('/catalog/<category_name>/delete', methods=['GET', 'POST'])
 def deleteItem(category_name):
     """

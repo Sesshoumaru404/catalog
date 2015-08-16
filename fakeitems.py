@@ -53,4 +53,4 @@ item.image = "images/test_image.jpg"
 session.add(item)
 session.commit()
 
-print "added menu items!"
+print "Added items!"
