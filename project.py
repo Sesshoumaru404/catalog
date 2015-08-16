@@ -1,50 +1,58 @@
-from flask import Flask, render_template, request, redirect, jsonify
-from flask import url_for, flash, send_from_directory, make_response
-from flask import session as login_session
-from werkzeug import secure_filename
-from werkzeug.contrib.atom import AtomFeed
-from flask_wtf.csrf import CsrfProtect
-from sqlalchemy import create_engine, asc, text, inspect
-from sqlalchemy.orm import sessionmaker
-from catalog import Category, Base, Item, User
-from helpers import Pagination, slices
-from sqlalchemy.sql import func
 import os
 import json
 import random
 import string
 import httplib2
+import requests
+from flask import Flask, render_template, request, redirect, jsonify
+from flask import url_for, flash, send_from_directory, make_response
+from flask import session as login_session
+from flask_wtf.csrf import CsrfProtect
+from werkzeug import secure_filename
+from werkzeug.contrib.atom import AtomFeed
+from sqlalchemy import create_engine, asc, text, inspect
+from sqlalchemy.sql import func
+from sqlalchemy.orm import sessionmaker
 from oauth2client.client import flow_from_clientsecrets
 from oauth2client.client import FlowExchangeError
-import requests
+from catalog import Category, Base, Item, User
+from helpers import Pagination, slices
 
 __author__ = 'sesshoumaru404@outlook.com (Paul)'
 
+# Setup different optinon
 UPLOAD_FOLDER = 'images'
 PER_PAGE = 10
 ALLOWED_EXTENSIONS = set(['txt', 'pdf', 'png', 'jpg', 'jpeg', 'gif'])
 
 app = Flask(__name__)
 
-
+# Get sercets for Google plus sign in
 CLIENT_ID = json.loads(
     open('client_secrets.json', 'r').read())['web']['client_id']
 APPLICATION_NAME = "Project 3 Catalog App"
+# Config images folder
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
+# Config max size of image, to increase change fisrt value
+# starting value is 2mb
 app.config['MAX_CONTENT_LENGTH'] = 2 * 1024 * 1024
 app.secret_key = ''.join(random.choice(string.ascii_uppercase + string.digits)
                          for x in xrange(32))
+# Csft propect site
 CsrfProtect(app)
+
 # Connect to Database and create database session
 engine = create_engine('sqlite:///categoryproject.db')
 Base.metadata.bind = engine
-
 DBSession = sessionmaker(bind=engine)
 session = DBSession()
 
 
 @app.route('/feeds')
 def catalogJSON():
+    """
+    An json feed for category and item.
+    """
     feed = request.args.get('feed')
     print feed
     if feed == "categories":
@@ -60,13 +68,17 @@ def catalogJSON():
 
 @app.route('/feeds/ATOM')
 def catalogATOM():
-    items = session.query(Item).limit(1).all()
+    """
+    An atom feed for the 15 lastest items.
+    """
+    items = session.query(Item).limit(15).all()
     feed = AtomFeed('Items Feed', feed_url=request.url, url=request.url_root)
 
     for c in items:
         feed.add(c.name, c.category.name,
                  id=c.id,
-                 url=request.url_root + "catalog/%s" % c.category.name + "?item=%s" % c.id,
+                 url=request.url_root +
+                 "catalog/%s" % c.category.name + "?item=%s" % c.id,
                  content_type='html',
                  updated=c.edited_At)
     return feed.get_response()
@@ -147,7 +159,7 @@ def googleConnect():
     answer = requests.get(userinfo_url, params=params)
 
     data = answer.json()
-    # First User to login is admin user
+    # First User to login gets administrator status
     if session.query(User).first().name == 'admin':
         user = session.query(User).first()
         user.email = data['email']
@@ -156,12 +168,14 @@ def googleConnect():
         session.commit()
         login_session['email'] = user.email
         login_session['name'] = user.name
+        login_session['admin'] = user.admin
     else:
-        # Find user is not user create new user
+        # See if user is a passed user if not create account
         findUser = session.query(User).filter(User.email == data['email'])
         if findUser.first():
             login_session['email'] = findUser.one().email
             login_session['name'] = findUser.one().name
+            login_session['admin'] = findUser.one().admin
         else:
             newUser = User(email=data['email'],
                            name=data['name'])
@@ -169,6 +183,7 @@ def googleConnect():
             session.commit()
             login_session['email'] = newUser.email
             login_session['name'] = newUser.name
+            login_session['admin'] = False
 
     response = make_response(json.dumps('Successfully connected user.'), 200)
     response.headers['Content-Type'] = 'application/json'
@@ -178,7 +193,7 @@ def googleConnect():
 
 @app.route('/disconnect')
 def gdisconnect():
-        # Only disconnect a connected user.
+    # Only disconnect a connected user.
     credentials = login_session.get('credentials')
     if credentials is None:
         flash('Current user not connected.')
@@ -194,6 +209,7 @@ def gdisconnect():
         del login_session['gplus_id']
         del login_session['email']
         del login_session['name']
+        del login_session['admin']
 
         flash('Successfully Logout.')
         return redirect(url_for('showCatalog'))
@@ -210,6 +226,7 @@ def gdisconnect():
 @app.route('/catalog/<int:page>', methods=['GET'])
 @app.route('/catalog/<category_name>/<int:page>', methods=['GET'])
 def showCatalog(category_name=None, page=1):
+    """ Show all items and show all by category. """
     start, stop = slices(page, PER_PAGE)
     categorieswithCounts = session.query(Category).order_by(Category.name.asc())
     items = session.query(Item).order_by(Item.edited_At.desc())
@@ -223,7 +240,9 @@ def showCatalog(category_name=None, page=1):
     item_list = items.slice(start, stop)
     item_count = items.count()
     pagination = Pagination(page, PER_PAGE, item_count)
-    return render_template('index.html', categories=categorieswithCounts, lastest=item_list, pagination=pagination, category=category)
+    return render_template('index.html', categories=categorieswithCounts,
+                           lastest=item_list, pagination=pagination,
+                           category=category)
 
 
 # Show an Item
@@ -232,7 +251,7 @@ def showItem(category_name):
     item_id = request.args.get('item')
     if checkCategory(category_name):
         item = session.query(Item).filter(Item.id == item_id).one()
-        return render_template('show.html', item = item)
+        return render_template('show.html', item=item)
     else:
         return page_not_found("Invaild category")
 
@@ -240,11 +259,12 @@ def showItem(category_name):
 # Edit a item
 @app.route('/catalog/<category_name>/edit', methods=['GET', 'POST'])
 def editItem(category_name):
+    """ Only a sign-in creator can edit their items. """
     if not userLoggedIn():
         flash('Must be logged in to Edit Item')
         return redirect(url_for('showCatalog'))
     item_id = request.args.get('item')
-    categories =  session.query(Category.name).all()
+    categories = session.query(Category.name).all()
     if checkCategory(category_name):
         if request.method == 'POST':
             editedItem = session.query(Item).filter(Item.id == item_id).one()
@@ -253,6 +273,7 @@ def editItem(category_name):
                 return redirect(url_for('showCatalog'))
             image = request.files['image']
             imagepath = None
+            # Code for editing a image and removing a old image
             if image and allowed_file(image.filename):
                 filename = secure_filename(image.filename)
                 filename = unquieName(filename, item_id)
@@ -267,7 +288,7 @@ def editItem(category_name):
                     os.remove(imagepath)
                     editedItem.image = None
                     flash(e)
-                    return redirect(url_for('editItem', category_name = category_name, item = item_id))
+                    return redirect(url_for('editItem', category_name=category_name, item=item_id))
             for attr in request.form:
                 if request.form[attr]:
                     if attr == 'image':
@@ -276,10 +297,12 @@ def editItem(category_name):
             session.add(editedItem)
             session.commit()
             flash('Item Successfully Edited')
-            return redirect(url_for('showItem', category_name = category_name, item = item_id))
+            return redirect(url_for('showItem',
+                                    category_name=category_name, item=item_id))
         else:
             item = session.query(Item).filter(Item.id == item_id).one()
-            return render_template('update.html', categories=categories, item = item )
+            return render_template('update.html',
+                                   categories=categories, item=item)
     else:
         return page_not_found("404: Not Found")
 
@@ -287,10 +310,13 @@ def editItem(category_name):
 # Delete a menu item
 @app.route('/catalog/<category_name>/delete', methods=['GET', 'POST'])
 def deleteItem(category_name):
+    """
+    Only a sign-in creator can delete their items.
+    """
     item_id = request.args.get('item')
     itemToDelete = session.query(Item).filter(Item.id == item_id).one()
-    if matchUser(itemToDelete.user.email):
-        if request.method == 'POST':
+    if request.method == 'POST':
+        if matchUser(itemToDelete.user.email):
             if itemToDelete.image:
                 os.remove(itemToDelete.image)
             session.delete(itemToDelete)
@@ -298,14 +324,18 @@ def deleteItem(category_name):
             flash(itemToDelete.name.title() + ' successfully Deleted')
             return redirect(url_for('showCatalog'))
         else:
-            return render_template('deleteItem.html', item=itemToDelete)
-    else:
-        flash('Must be logged in to Delete')
-        return redirect(url_for('showItem', category_name = category_name, item = item_id))
+            flash('Must be logged on and creator to delete')
+            return redirect(url_for('showItem',
+                                    category_name=category_name, item=item_id))
+
+    return render_template('deleteItem.html', item=itemToDelete)
 
 
 @app.route('/catalog/item/create', methods=['GET', 'POST'])
 def createItem():
+    """
+    All user can create a new item.
+    """
     if not userLoggedIn():
         flash('Must be logged in to Create Item')
         return redirect(url_for('showCatalog'))
@@ -329,12 +359,18 @@ def createItem():
         session.flush()
         session.commit()
         flash(newItem.name + ' Successfully created')
-        return redirect(url_for('showItem', category_name = newItem.category.name, item = newItem.id))
-    return render_template('update.html', categories = categories, new=True)
+        return redirect(url_for('showItem',
+                                category_name=newItem.category.name,
+                                item=newItem.id))
+    return render_template('update.html',
+                           categories=categories, new=True)
 
 
 @app.route('/catalog/category/create', methods=['GET', 'POST'])
 def createCategory():
+    """
+    All users can create a new category.
+    """
     if not userLoggedIn():
         flash('Must be logged in to create new category')
         return redirect(url_for('showCatalog'))
@@ -350,35 +386,55 @@ def createCategory():
         return redirect(url_for('showCatalog'))
     return render_template('updatecategory.html', newCategory=True)
 
+
 @app.route('/catalog/category/edit', methods=['GET', 'POST'])
-def createCategory():
-    if not userLoggedIn():
-        flash('Must be logged in to create new category')
+def editCategory():
+    """
+    Edit a category only Administrator are allowed to edit categories.
+    """
+    if not userAdmin():
+        flash('Must be an Administrator to edit a category')
         return redirect(url_for('showCatalog'))
     if request.method == 'POST':
+        category_name = request.args.get('name')
         name = request.form['name'].lower()
+        editcategory = session.query(Category).filter(Category.name == category_name).one()
         if session.query(Category).filter(Category.name == name).first():
             flash('Category exist with that name')
-            return redirect(url_for('createCategory'))
-        category = Category(name=name)
-        session.add(category)
+            return redirect(url_for('editCategory'))
+        editcategory.name = name
+        session.add(editcategory)
         session.commit()
-        flash(name.title() + ' successfully created')
+        flash(name.title() + ' successfully edited')
         return redirect(url_for('showCatalog'))
+    category_name = request.args.get('name')
+    editcategory = session.query(Category).filter(Category.name == category_name).one()
+    return render_template('updatecategory.html', editcategory=editcategory)
 
-    return render_template('updatecategory.html')
 
 @app.route('/catalog/category/delete', methods=['GET', 'POST'])
 def deleteCategory():
+    """
+    Delete a category only user and delete categories and must be an
+    Administrator to delete category that still have items a associated
+    with that category.
+    """
     if not userLoggedIn():
-        flash('Must be logged in to delete new category')
+        flash('Must be a user to delete a category')
         return redirect(url_for('showCatalog'))
     category_name = request.args.get('name')
     delete_category = session.query(Category).filter(Category.name == category_name)
     if request.method == 'POST':
-        if delete_category.first().items != [] :
-            flash('Cannot erase a non empty category')
+        if delete_category.first().items != [] and not userAdmin():
+            flash('Must be an Administrator to erase a non empty category')
             return redirect(url_for('showCatalog'))
+        else:
+            # Remove all associated item and items
+            remove_items = session.query(Item).filter(Item.category.has(name=category_name))
+            for item in remove_items:
+                if item.image:
+                    os.remove(item.image)
+                session.delete(item)
         session.delete(delete_category.first())
         session.commit()
         flash(category_name.title() + ' successfully Deleted')
@@ -387,56 +443,74 @@ def deleteCategory():
     return render_template('deleteItem.html', category=category_name)
 
 
-
 @app.route('/uploads/<filename>')
 def uploaded_file(filename):
+    """Get file from folder to display on page"""
     return send_from_directory(app.config['UPLOAD_FOLDER'],
                                filename)
 
+
 @app.errorhandler(404)
 def page_not_found(e):
-    return render_template('404.html', error = e), 404
+    """ Load Custom 404 Page """
+    return render_template('404.html', error=e), 404
+
 
 def checkCategory(category):
-    #Prevent fake url
+    """ Prevents fake category url name """
     q = session.query(Category).filter(Category.name == category).count()
     return q != 0
 
+
 def unquieName(name, itemId=None):
+    """ Gives a new image file a unique  file name"""
     if itemId:
-        title = name.split('.',1)[0]
-        ending = name.split('.',1)[-1]
+        title = name.split('.', 1)[0]
+        ending = name.split('.', 1)[-1]
         title += "_item_id_%s." % itemId
         newfilename = title + ending
         return newfilename
     else:
-        title = name.split('.',1)[0]
-        ending = name.split('.',1)[-1]
+        title = name.split('.', 1)[0]
+        ending = name.split('.', 1)[-1]
         randonNum = ''.join(random.choice(string.ascii_uppercase + string.digits) for _ in range(12))
         title += "_new_" + randonNum + '.' + ending
         return title
 
+
 def allowed_file(filename):
+    """Make sure that user i uploading allowed file type"""
     return '.' in filename and \
            filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
 
 def userLoggedIn():
+    """Check it user is logged on"""
     if 'email' in login_session:
         return True
     else:
         return False
 
-app.jinja_env.globals['userLoggedIn'] = userLoggedIn
+
+def userAdmin():
+    """Check if user is an administrator"""
+    if 'admin' in login_session:
+        return login_session['admin']
+    else:
+        return False
 
 
 def matchUser(post_user):
+    """Make user match creator of item before they can edit or delete"""
     if userLoggedIn():
         signinUser = login_session['email']
-        if signinUser == post_user :
+        if signinUser == post_user:
             return True
     return False
 
+
+app.jinja_env.globals['userLoggedIn'] = userLoggedIn
+app.jinja_env.globals['userAdmin'] = userAdmin
 app.jinja_env.globals['matchUser'] = matchUser
 
 if __name__ == '__main__':

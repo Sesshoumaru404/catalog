@@ -1,9 +1,16 @@
 .sidebar{
   margin-top: 10px;
   display:block;
-  .count{
-	   text-decoration-color: red;
-  }
+}
+
+.sidebar .count{
+   color: #0E23E2;
+   float: right;
+}
+
+.sidebar .glyphicon{
+  float: right;
+  padding-left: 4px;
 }
 
 .main{

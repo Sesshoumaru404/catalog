@@ -3,27 +3,29 @@
   {% include "head.html" %}
   <body class=" hasGoogleVoiceExt login">
     {% include "flash.html" %}
-    <div class="container">
-
-      <!--LOAD PRE-REQUISITES FOR GOOGLE SIGN IN -->
-      <script src="//ajax.googleapis.com/ajax/libs/jquery/1.8.2/jquery.min.js"></script>
-      <script src="//apis.google.com/js/platform.js?onload=start"> </script>
-      <!-- END PRE-REQUISITES FOR GOOGLE SIGN IN -->
-      <!-- GOOGLE PLUS SIGN IN-->
-      <div id="signInButton">
-        <span class="g-signin"
-          data-scope="openid email"
-          data-clientid="315648899100-iiocltn54lh1r1ovjkvgfatu98b6mh5e.apps.googleusercontent.com"
-          data-redirecturi="postmessage"
-          data-accesstype="offline"
-          data-cookiepolicy="single_host_origin"
-          data-callback="signInCallback"
-          data-approvalprompt="force">
-        </span>
-      </div><!-- /signInButton -->
+    <div class="container main">
+      <div class="row">
+        <div class="col-sm-8 col-md-offset-2 main">
+          <h2>Please use your Goolge plus id to sign in</h2>
+          <!-- GOOGLE PLUS SIGN IN-->
+          <div id="signInButton">
+            <span class="g-signin"
+              data-scope="openid email"
+              data-clientid="315648899100-iiocltn54lh1r1ovjkvgfatu98b6mh5e.apps.googleusercontent.com"
+              data-redirecturi="postmessage"
+              data-accesstype="offline"
+              data-cookiepolicy="single_host_origin"
+              data-callback="signInCallback"
+              data-approvalprompt="force">
+            </span>
+          </div><!-- /signInButton -->
+        </div><!-- /col -->
+      </div><!-- /row -->
     </div> <!-- /container -->
+
     <!-- IE10 viewport hack for Surface/desktop Windows 8 bug -->
     <script src="../../assets/js/ie10-viewport-bug-workaround.js"></script>
+
     <script type="text/javascript">
     function signInCallback(authResult) {
       var csrftoken = $('meta[name=csrf-token]').attr('content')

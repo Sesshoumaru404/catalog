@@ -1,4 +1,5 @@
-from sqlalchemy import Column, ForeignKey, Integer, String, DateTime, func, Float
+from sqlalchemy import Column, ForeignKey, Integer, String, DateTime
+from sqlalchemy import func, Float, Boolean
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship, backref
 from sqlalchemy import create_engine
@@ -13,14 +14,7 @@ class User(Base):
     id = Column(Integer, primary_key=True)
     email = Column(String(100), nullable=False)
     name = Column(String(110), nullable=False)
-
-    @property
-    def serialize(self):
-        """Return object data in easily serializeable format"""
-        return {
-            'name': self.name,
-            'email': self.email
-        }
+    admin = Column(Boolean, default=False)
 
 
 class Category(Base):
@@ -28,17 +22,16 @@ class Category(Base):
 
     id = Column(Integer, primary_key=True)
     name = Column(String(50), nullable=False)
-    # items = relationship("Item", order_by="Item.id", backref="category")
-
-    def itemsInCategory():
-        return
 
     @property
     def serialize(self):
-        """Return object data in easily serializeable format"""
-        return {
-            'name': self.name,
-        }
+        # Return object data in easily serializeable format
+        return {'name': self.name}
+
+    @property
+    def itemsInCategory(self):
+        # Return item count per category
+        return len(self.items)
 
 
 class Item(Base):
@@ -53,7 +46,7 @@ class Item(Base):
     image = Column(String())
     category_id = Column(Integer, ForeignKey('category.id'))
     user_id = Column(Integer, ForeignKey('user.id'))
-    category = relationship('Category', backref=backref('items', order_by=id))
+    category = relationship('Category', backref=backref('items'))
     user = relationship(User)
 
     @property

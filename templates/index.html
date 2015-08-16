@@ -52,7 +52,7 @@
 {% block content %}
   <div class="container">
     <div class="row">
-      <div class="col-sm-2 sidebar">
+      <div class="col-sm-3 sidebar">
         <div class="sidebar-module">
           <h4>Categories </h4>
           <ol class="list-unstyled">
@@ -61,12 +61,26 @@
                   <a href="{{url_for('showCatalog', category_name = category.name, page=1) }}">
                     {{category.name.title()}}
                   </a>
-                  {% if category.items|length > 0 %}
-                    - <span class="count">{{category.items|length}}</span>
-                  {% else %}
-                    <a href="{{ url_for('deleteCategory', name = category.name) }}">
-                      <span class="glyphicon glyphicon-trash"></span>
+                  {% if userAdmin() %}
+                    <a href="{{ url_for('editCategory', name = category.name) }}">
+                      <span class="glyphicon glyphicon-edit"></span>
                     </a>
+                  {% endif %}
+                  {% if category.itemsInCategory > 0 %}
+                      {% if userAdmin() %}
+                        <a href="{{ url_for('deleteCategory', name = category.name) }}">
+                          <span class="glyphicon glyphicon-trash"></span>
+                        </a>
+                      {% endif %}
+                      <span class="count">{{category.itemsInCategory}}</span>
+                  {% else %}
+                    {% if userLoggedIn() %}
+                      <a href="{{ url_for('deleteCategory', name = category.name) }}">
+                        <span class="glyphicon glyphicon-trash"></span>
+                      </a>
+                    {% else %}
+                      <span class="count">0</span>
+                    {% endif %}
                   {% endif %}
                 </li>
               {% endfor  %}
@@ -93,12 +107,11 @@
               <tbody>
                 {% for x in lastest %}
                   <tr class='clickable-row' data-href='{{url_for('showItem', category_name = x.category.name, item= x.id) }}'>
-                    <td>{{x.name.title()}} {% if x.image %}  <span class="badge"><span class="glyphicon glyphicon-picture"></span></span> {% endif %}</td>
+                    <td>{{x.name.title()}} {% if x.image %}<span class="badge"><span class="glyphicon glyphicon-picture"></span></span> {% endif %}</td>
                     <td>{{x.category.name.title()}}</td>
                     <td>$ {{'%0.2f' % x.price}}</td>
                   </tr>
                 {% endfor  %}
-
               </tbody>
             </table>
           </div>
