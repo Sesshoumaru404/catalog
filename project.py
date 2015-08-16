@@ -145,7 +145,7 @@ def googleConnect():
     stored_credentials = login_session.get('credentials')
     stored_gplus_id = login_session.get('gplus_id')
     if stored_credentials is not None and gplus_id == stored_gplus_id:
-        response = make_response(json.dumps('Current user is already connected.'),
+        response = make_response(json.dumps('User is already connected.'),
                                  200)
         response.headers['Content-Type'] = 'application/json'
         return response
@@ -228,19 +228,20 @@ def gdisconnect():
 def showCatalog(category_name=None, page=1):
     """ Show all items and show all by category. """
     start, stop = slices(page, PER_PAGE)
-    categorieswithCounts = session.query(Category).order_by(Category.name.asc())
+    categories = session.query(Category).order_by(Category.name.asc())
     items = session.query(Item).order_by(Item.edited_At.desc())
     category = False
     if category_name:
         if checkCategory(category_name):
-            items = session.query(Item).filter(Item.category.has(name=category_name))
+            items = session.query(Item).\
+                filter(Item.category.has(name=category_name))
             category = category_name
         else:
             return page_not_found("404: Not Found")
     item_list = items.slice(start, stop)
     item_count = items.count()
     pagination = Pagination(page, PER_PAGE, item_count)
-    return render_template('index.html', categories=categorieswithCounts,
+    return render_template('index.html', categories=categories,
                            lastest=item_list, pagination=pagination,
                            category=category, item_count=item_count)
 
@@ -288,7 +289,8 @@ def editItem(category_name):
                     os.remove(imagepath)
                     editedItem.image = None
                     flash(e)
-                    return redirect(url_for('editItem', category_name=category_name, item=item_id))
+                    return redirect(url_for('editItem',
+                                    category_name=category_name, item=item_id))
             for attr in request.form:
                 if request.form[attr]:
                     if attr == 'image':
@@ -423,9 +425,9 @@ def deleteCategory():
         flash('Must be a user to delete a category')
         return redirect(url_for('showCatalog'))
     category_name = request.args.get('name')
-    delete_category = session.query(Category).filter(Category.name == category_name)
+    deleteCat = session.query(Category).filter(Category.name == category_name)
     if request.method == 'POST':
-        if delete_category.first().items != [] and not userAdmin():
+        if deleteCat.first().items != [] and not userAdmin():
             flash('Must be an Administrator to erase a non empty category')
             return redirect(url_for('showCatalog'))
         else:
@@ -435,7 +437,7 @@ def deleteCategory():
                 if item.image:
                     os.remove(item.image)
                 session.delete(item)
-        session.delete(delete_category.first())
+        session.delete(deleteCat.first())
         session.commit()
         flash(category_name.title() + ' successfully Deleted')
         return redirect(url_for('showCatalog'))
