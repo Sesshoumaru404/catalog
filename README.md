@@ -52,7 +52,7 @@ The Item Catalog project consists of developing an application that provides a l
 5. Try to edit a post without being logged in.
 6. Try a feed.
 7. Sign as another user to view change in pages.
-8. Try to break application, if does break please open an issue so I can fix it.
+8. Try to break application, if it does break please open an issue so I can address it.
 
 ###Verisons
 
