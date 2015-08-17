@@ -37,8 +37,11 @@
                 </div>
 
                 <label for="name">Category:</label>
-                <select class="form-control" name="category">
+                <select class="form-control" name="category_id">
                   {% for x in categories %}
+                      {% if not new and x.id == item.category_id %}
+                        <option value ="{{x.id}}" selected="true">{{x.name.title()}}</option>
+                      {% endif %}
                       <option value ="{{x.id}}" >{{x.name.title()}}</option>
                   {% endfor %}
                 </select>
