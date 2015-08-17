@@ -265,7 +265,7 @@ def editItem(category_name):
         flash('Must be logged in to Edit Item')
         return redirect(url_for('showCatalog'))
     item_id = request.args.get('item')
-    categories = session.query(Category.name).all()
+    categories = session.query(Category).all()
     if checkCategory(category_name):
         if request.method == 'POST':
             editedItem = session.query(Item).filter(Item.id == item_id).one()
@@ -295,6 +295,7 @@ def editItem(category_name):
                 if request.form[attr]:
                     if attr == 'image':
                         pass
+                    print request.form['category_id']
                     setattr(editedItem, attr, request.form[attr])
             session.add(editedItem)
             session.commit()
@@ -354,7 +355,7 @@ def createItem():
         newItem = Item(name=request.form['name'],
                        description=request.form['description'],
                        price=request.form['price'],
-                       category_id=request.form['category'],
+                       category_id=request.form['category_id'],
                        user_id=user.id,
                        image=imagepath)
         session.add(newItem)
