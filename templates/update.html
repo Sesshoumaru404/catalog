@@ -41,8 +41,9 @@
                   {% for x in categories %}
                       {% if not new and x.id == item.category_id %}
                         <option value ="{{x.id}}" selected="true">{{x.name.title()}}</option>
+                      {% else %}
+                        <option value ="{{x.id}}" >{{x.name.title()}}</option>
                       {% endif %}
-                      <option value ="{{x.id}}" >{{x.name.title()}}</option>
                   {% endfor %}
                 </select>
                 <div class="form-group">
