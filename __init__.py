@@ -1,8 +1,8 @@
+import httplib2
 import os
 import json
 import random
 import string
-import httplib2
 import requests
 from flask import Flask, render_template, request, redirect, jsonify
 from flask import url_for, flash, send_from_directory, make_response
@@ -38,6 +38,8 @@ app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 app.config['MAX_CONTENT_LENGTH'] = 2 * 1024 * 1024
 # Hide database info use this command in terminal
 # export DATABASE_URL=postgresql://user:password@ipaddress/dbname
+# export DATABASE_URL=postgresql://catalogapp:project5@52.88.175.230/catalog
+
 app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv("DATABASE_URL")
 app.secret_key = ''.join(random.choice(string.ascii_uppercase + string.digits)
                          for x in xrange(32))
