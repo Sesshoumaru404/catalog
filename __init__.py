@@ -517,6 +517,5 @@ app.jinja_env.globals['userAdmin'] = userAdmin
 app.jinja_env.globals['matchUser'] = matchUser
 
 if __name__ == '__main__':
-    app.secret_key = "catalog"
     app.debug = True
     app.run()
