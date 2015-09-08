@@ -36,13 +36,19 @@ app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 # Config max size of image, to increase change fisrt value
 # starting value is 2mb
 app.config['MAX_CONTENT_LENGTH'] = 2 * 1024 * 1024
+# Hide database info use this command in terminal
+# export DATABASE_URL=postgresql://user:password@ipaddress/dbname
+app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv("DATABASE_URL")
 app.secret_key = ''.join(random.choice(string.ascii_uppercase + string.digits)
                          for x in xrange(32))
 # Csft propect site
 CsrfProtect(app)
 
 # Connect to Database and create database session
-engine = create_engine('sqlite:///categoryproject.db')
+if SQLALCHEMY_DATABASE_URI is None:
+    print "Need database config"
+else:
+    engine = create_engine(SQLALCHEMY_DATABASE_URI)
 Base.metadata.bind = engine
 DBSession = sessionmaker(bind=engine)
 session = DBSession()
