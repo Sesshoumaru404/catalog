@@ -46,7 +46,7 @@ app.secret_key = ''.join(random.choice(string.ascii_uppercase + string.digits)
 # Csft propect site
 CsrfProtect(app)
 
-engine = create_engine(postgresql://catalogapp:project5@localhost/catalog)
+engine = create_engine("postgresql://catalogapp:catalog@localhost/catalog")
 Base.metadata.bind = engine
 DBSession = sessionmaker(bind=engine)
 session = DBSession()
