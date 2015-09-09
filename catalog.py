@@ -60,7 +60,7 @@ class Item(Base):
             'category_name': self.category.name
         }
 
-test = os.getenv("DATABASE_URL")
-engine = create_engine(test)
-
-Base.metadata.create_all(engine)
+# test = os.getenv("DATABASE_URL")
+# engine = create_engine(test)
+#
+# Base.metadata.create_all(engine)
