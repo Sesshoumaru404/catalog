@@ -60,7 +60,7 @@ class Item(Base):
             'category_name': self.category.name
         }
 
-# test = os.getenv("DATABASE_URL")
-# engine = create_engine(test)
-#
-# Base.metadata.create_all(engine)
+
+engine = create_engine(postgresql://catalogapp:project5@localhost/catalog)
+
+Base.metadata.create_all(engine)

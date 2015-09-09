@@ -37,20 +37,16 @@ app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 # starting value is 2mb
 app.config['MAX_CONTENT_LENGTH'] = 2 * 1024 * 1024
 # Hide database info use this command in terminal
-# export DATABASE_URL=postgresql://user:password@ipaddress/dbname
-# export DATABASE_URL=postgresql://catalogapp:project5@localhost/catalog
+# echo DATABASE_URL=postgresql://user:password@ipaddress/dbname
+# echo DATABASE_URL=postgresql://catalogapp:project5@localhost/catalog
 
-app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv("DATABASE_URL")
+# app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv("DATABASE_URL")
 app.secret_key = ''.join(random.choice(string.ascii_uppercase + string.digits)
                          for x in xrange(32))
 # Csft propect site
 CsrfProtect(app)
 
-# Connect to Database and create database session
-if SQLALCHEMY_DATABASE_URI is None:
-    print "Need database config"
-else:
-    engine = create_engine(SQLALCHEMY_DATABASE_URI)
+engine = create_engine(postgresql://catalogapp:project5@localhost/catalog)
 Base.metadata.bind = engine
 DBSession = sessionmaker(bind=engine)
 session = DBSession()
