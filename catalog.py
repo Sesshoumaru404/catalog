@@ -1,3 +1,4 @@
+import os
 from sqlalchemy import Column, ForeignKey, Integer, String, DateTime
 from sqlalchemy import func, Float, Boolean
 from sqlalchemy.ext.declarative import declarative_base
@@ -60,6 +61,6 @@ class Item(Base):
         }
 
 
-engine = create_engine('sqlite:///categoryproject.db')
+engine = create_engine(os.getenv("DATABASE_URL"))
 
 Base.metadata.create_all(engine)

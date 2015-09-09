@@ -38,7 +38,7 @@ app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 app.config['MAX_CONTENT_LENGTH'] = 2 * 1024 * 1024
 # Hide database info use this command in terminal
 # export DATABASE_URL=postgresql://user:password@ipaddress/dbname
-# export DATABASE_URL=postgresql://catalogapp:project5@52.88.175.230/catalog
+# export DATABASE_URL=postgresql://catalogapp:project5@localhost/catalog
 
 app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv("DATABASE_URL")
 app.secret_key = ''.join(random.choice(string.ascii_uppercase + string.digits)
