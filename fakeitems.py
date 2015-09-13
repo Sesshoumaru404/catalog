@@ -5,7 +5,7 @@ from sqlalchemy.orm import sessionmaker
 
 from catalog import Category, Base, Item, User
 
-engine = create_engine('sqlite:///categoryproject.db')
+engine = create_engine("postgresql://catalogapp:catalog@localhost/catalog")
 
 # Clear database
 Base.metadata.drop_all(engine)
@@ -49,7 +49,7 @@ for sport in sports:
         session.commit()
 
 item = session.query(Item).first()
-item.image = "images/test_image.jpg"
+item.image = "/var/www/CatalogApp/catalog/images/test_image.jpg"
 session.add(item)
 session.commit()
 

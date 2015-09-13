@@ -43,7 +43,7 @@ class Item(Base):
     edited_At = Column(DateTime, default=func.now(), onupdate=func.now())
     name = Column(String(50), nullable=False)
     price = Column(Float, default=0.00)
-    description = Column(String(300), nullable=False)
+    description = Column(String(1000), nullable=False)
     image = Column(String())
     category_id = Column(Integer, ForeignKey('category.id'))
     user_id = Column(Integer, ForeignKey('user.id'))
