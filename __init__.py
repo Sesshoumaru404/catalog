@@ -22,6 +22,8 @@ __author__ = 'sesshoumaru404@outlook.com (Paul)'
 
 # Setup different optinon
 UPLOAD_FOLDER = '/var/www/CatalogApp/catalog/images'
+# GOOGLE_JSON = '/home/{user}/Coding/catalog/client_secrets.json'
+GOOGLE_JSON = '/var/www/CatalogApp/catalog/client_secrets.json'
 PER_PAGE = 10
 ALLOWED_EXTENSIONS = set(['txt', 'pdf', 'png', 'jpg', 'jpeg', 'gif'])
 
@@ -29,7 +31,7 @@ app = Flask(__name__)
 
 # Get sercets for Google plus sign in
 CLIENT_ID = json.loads(
-    open('/var/www/CatalogApp/catalog/client_secrets.json', 'r').read())['web']['client_id']
+    open(GOOGLE_JSON, 'r').read())['web']['client_id']
 APPLICATION_NAME = "Project 3 Catalog App"
 # Config images folder
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
@@ -110,7 +112,7 @@ def googleConnect():
 
     try:
         # Upgrade the authorization code into a credentials object
-        oauth_flow = flow_from_clientsecrets('/var/www/CatalogApp/catalog/client_secrets.json', scope='')
+        oauth_flow = flow_from_clientsecrets(GOOGLE_JSON, scope='')
         oauth_flow.redirect_uri = 'postmessage'
         credentials = oauth_flow.step2_exchange(code)
     except FlowExchangeError:
