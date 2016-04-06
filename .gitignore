@@ -1,4 +1,5 @@
 /.vagrant
+/catalogenv
 *.pyc
 *.db
 imagepath*
