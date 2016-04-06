@@ -1,5 +1,9 @@
 /.vagrant
+<<<<<<< HEAD
 /venv
+=======
+/catalogenv
+>>>>>>> c884e78a5c64b9676dc9344a60322e339629be8c
 *.pyc
 *.db
 imagepath*
