@@ -5,7 +5,7 @@ from sqlalchemy.orm import sessionmaker
 
 from catalog import Category, Base, Item, User
 
-engine = create_engine("postgresql://sesshoumaru:sesshoumaru@localhost/catalog")
+engine = create_engine("postgresql://sesshoumaru:sesshoumaru@localhost/catalog_db")
 
 # Clear database
 Base.metadata.drop_all(engine)
