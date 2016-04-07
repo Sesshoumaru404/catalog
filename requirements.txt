@@ -6,3 +6,4 @@ requests
 httplib2
 sqlalchemy-utils
 flask_wtf
+psycopg2
