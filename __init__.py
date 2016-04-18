@@ -65,7 +65,7 @@ def catalogJSON():
         categories = session.query(Category).all()
         return jsonify(categories=[r.serialize for r in categories])
     elif feed == "items":
-        items = session.query(Item).all()
+        items = session.query(Item).limit(30).all()
         return jsonify(items=[r.serialize for r in items])
     else:
         flash("Page Not Found")
